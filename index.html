@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HomeMaker — Family Finance</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+  :root {
+    --cream:#FAF7F2;--warm-white:#FFFFFF;--ink:#1A1A18;--ink-soft:#4A4A46;--ink-muted:#9A9A94;
+    --gold:#C8922A;--gold-light:#F5E4C0;--gold-pale:#FDF6E8;
+    --teal:#2A7A6A;--teal-light:#E0F0EC;--red:#C0392B;--red-light:#FDECEA;
+    --blue:#2B5A9E;--blue-light:#E8EEFA;--border:#E8E4DC;--border-strong:#C8C4BC;
+    --radius:12px;--radius-sm:8px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;font-size:14px;}
+  #app{display:flex;min-height:100vh;}
+  #sidebar{width:220px;background:var(--ink);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow:hidden;}
+  .sidebar-logo{padding:28px 24px 20px;border-bottom:1px solid rgba(255,255,255,0.08);}
+  .sidebar-logo .app-name{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#fff;}
+  .sidebar-logo .app-sub{font-size:11px;color:rgba(255,255,255,0.4);margin-top:2px;letter-spacing:1px;text-transform:uppercase;}
+  .sync-status{padding:10px 20px;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;gap:8px;}
+  .sync-dot{width:8px;height:8px;border-radius:50%;background:#888;flex-shrink:0;transition:background 0.3s;}
+  .sync-dot.connected{background:#2ecc71;}
+  .sync-dot.syncing{background:#f39c12;animation:pulse 1s infinite;}
+  .sync-dot.error{background:#e74c3c;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+  .sync-label{font-size:11px;color:rgba(255,255,255,0.45);}
+  .month-sel{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.08);}
+  .month-sel label{font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px;}
+  .month-sel select{width:100%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:var(--radius-sm);color:#fff;padding:7px 10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;cursor:pointer;}
+  .month-sel select option{background:#2a2a28;}
+  .nav-section{padding:12px 12px 4px;overflow-y:auto;flex:1;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.15) transparent;}
+  .nav-label{font-size:10px;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:1px;padding:0 8px;margin-bottom:4px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);color:rgba(255,255,255,0.6);cursor:pointer;font-size:13px;transition:all 0.15s;margin-bottom:1px;user-select:none;}
+  .nav-item:hover{background:rgba(255,255,255,0.07);color:#fff;}
+  .nav-item.active{background:var(--gold);color:#fff;font-weight:500;}
+  .nav-item .icon{font-size:15px;width:20px;text-align:center;}
+  .sidebar-footer{flex-shrink:0;padding:12px 20px;border-top:1px solid rgba(255,255,255,0.08);font-size:11px;color:rgba(255,255,255,0.2);text-align:center;}
+  #main{margin-left:220px;flex:1;min-height:100vh;display:flex;flex-direction:column;}
+  .topbar{background:var(--warm-white);border-bottom:1px solid var(--border);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+  .topbar-title{font-family:'Playfair Display',serif;font-size:19px;font-weight:600;}
+  .topbar-right{display:flex;gap:10px;align-items:center;}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;border:none;transition:all 0.15s;}
+  .btn-primary{background:var(--gold);color:#fff;}.btn-primary:hover{background:#b07e22;}
+  .btn-outline{background:transparent;border:1px solid var(--border-strong);color:var(--ink-soft);}.btn-outline:hover{background:var(--cream);}
+  .btn-sm{padding:5px 10px;font-size:12px;}
+  .btn-teal{background:var(--teal);color:#fff;}.btn-teal:hover{background:#236055;}
+  .live-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(46,204,113,0.12);border:1px solid rgba(46,204,113,0.3);border-radius:20px;padding:3px 10px;font-size:11px;color:#27ae60;font-weight:500;}
+  .live-dot{width:6px;height:6px;border-radius:50%;background:#2ecc71;animation:pulse 1.5s infinite;}
+  .page{padding:28px 32px;display:none;}.page.active{display:block;}
+  .card{background:var(--warm-white);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;}
+  .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .card-title{font-size:13px;font-weight:500;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.6px;}
+  .metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px;}
+  .metric-card{background:var(--warm-white);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;}
+  .metric-card .m-label{font-size:11px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;}
+  .metric-card .m-val{font-family:'Playfair Display',serif;font-size:24px;font-weight:600;color:var(--ink);}
+  .metric-card .m-sub{font-size:11px;color:var(--ink-muted);margin-top:3px;}
+  .metric-card.green .m-val{color:var(--teal);}.metric-card.red .m-val{color:var(--red);}.metric-card.gold .m-val{color:var(--gold);}
+  .metric-card.accent{border-left:3px solid var(--gold);}
+  .tbl-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;}
+  thead th{text-align:left;font-size:11px;font-weight:500;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.6px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--cream);}
+  tbody tr{border-bottom:1px solid var(--border);transition:background 0.1s;}
+  tbody tr:last-child{border-bottom:none;}
+  tbody tr:hover{background:var(--cream);}
+  tbody td{padding:10px 12px;font-size:13px;color:var(--ink-soft);vertical-align:middle;}
+  tbody td:first-child{color:var(--ink);font-weight:500;}
+  .badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:500;}
+  .badge-green{background:var(--teal-light);color:var(--teal);}.badge-red{background:var(--red-light);color:var(--red);}
+  .badge-blue{background:var(--blue-light);color:var(--blue);}.badge-gray{background:#F0EDE8;color:var(--ink-soft);}
+  .progress-wrap{margin-bottom:12px;}
+  .progress-info{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+  .progress-name{font-size:13px;color:var(--ink);font-weight:500;}
+  .progress-nums{font-size:12px;color:var(--ink-muted);}
+  .progress-track{height:8px;background:var(--cream);border-radius:4px;overflow:hidden;border:1px solid var(--border);}
+  .progress-fill{height:100%;border-radius:4px;transition:width 0.4s;}
+  .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(10,10,8,0.5);z-index:200;align-items:center;justify-content:center;}
+  .modal-backdrop.open{display:flex;}
+  .modal{background:var(--warm-white);border-radius:var(--radius);padding:28px 28px 24px;width:460px;max-width:95vw;box-shadow:0 4px 24px rgba(0,0,0,0.10);max-height:90vh;overflow-y:auto;}
+  .modal h3{font-family:'Playfair Display',serif;font-size:18px;font-weight:600;margin-bottom:18px;}
+  .form-row{margin-bottom:14px;}
+  .form-row label{display:block;font-size:12px;font-weight:500;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.4px;}
+  .form-row input,.form-row select,.form-row textarea{width:100%;padding:9px 12px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);outline:none;transition:border 0.15s;}
+  .form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:var(--gold);background:#fff;}
+  .form-row textarea{resize:vertical;min-height:70px;}
+  .form-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;padding-top:14px;border-top:1px solid var(--border);}
+  .chart-bar-item{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .chart-bar-label{font-size:12px;color:var(--ink-soft);min-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .chart-bar-track{flex:1;height:10px;background:var(--cream);border-radius:5px;overflow:hidden;position:relative;}
+  .chart-bar-fill{height:100%;border-radius:5px;}
+  .chart-bar-fill.budget{opacity:0.25;position:absolute;top:0;left:0;}
+  .chart-bar-fill.actual{position:absolute;top:0;left:0;}
+  .chart-bar-val{font-size:12px;color:var(--ink-muted);min-width:80px;text-align:right;}
+  .tabs{display:flex;gap:2px;margin-bottom:20px;background:var(--cream);border-radius:var(--radius-sm);padding:3px;border:1px solid var(--border);width:fit-content;flex-wrap:wrap;}
+  .tab{padding:6px 16px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--ink-muted);transition:all 0.15s;}
+  .tab.active{background:var(--warm-white);color:var(--ink);font-weight:500;box-shadow:0 1px 4px rgba(0,0,0,0.08);}
+  .empty{text-align:center;padding:48px 20px;color:var(--ink-muted);}
+  .empty .e-icon{font-size:36px;margin-bottom:10px;}
+  .empty .e-text{font-size:14px;}
+  .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+  .section-title{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;}
+  .section-sub{font-size:12px;color:var(--ink-muted);margin-top:2px;}
+  .sum-row{display:flex;justify-content:flex-end;gap:24px;padding:10px 12px;background:var(--cream);border-top:1px solid var(--border);border-radius:0 0 var(--radius) var(--radius);}
+  .sum-item{text-align:right;}
+  .sum-item .s-label{font-size:11px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.5px;}
+  .sum-item .s-val{font-size:15px;font-weight:600;font-family:'Playfair Display',serif;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .text-right{text-align:right;}.text-green{color:var(--teal);font-weight:600;}.text-red{color:var(--red);font-weight:600;}
+  .mt{margin-top:20px;}
+  .icon-btn{background:none;border:none;cursor:pointer;padding:4px;color:var(--ink-muted);font-size:14px;border-radius:4px;transition:all 0.15s;}
+  .icon-btn:hover{background:var(--cream);color:var(--ink);}
+  #loading-overlay{position:fixed;inset:0;background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity 0.5s;}
+  #loading-overlay.hide{opacity:0;pointer-events:none;}
+  .loading-logo{font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:#fff;margin-bottom:8px;}
+  .loading-sub{font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:1px;text-transform:uppercase;margin-bottom:32px;}
+  .loading-spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,0.1);border-top:3px solid var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;}
+  .loading-msg{font-size:12px;color:rgba(255,255,255,0.35);margin-top:16px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @media(max-width:768px){
+    #sidebar{width:60px;}
+    #sidebar .sidebar-logo .app-name,#sidebar .app-sub,#sidebar .nav-item span,#sidebar .month-sel label,#sidebar .sidebar-footer,#sidebar .nav-label,.sync-label{display:none;}
+    #main{margin-left:60px;}
+    .topbar{padding:0 16px;}
+    .page{padding:16px;}
+    .metric-grid{grid-template-columns:1fr 1fr;}
+    .two-col{grid-template-columns:1fr;}
+    .form-grid2{grid-template-columns:1fr;}
+  }
+  @media print{#sidebar,.topbar-right,.btn,#loading-overlay{display:none!important;}#main{margin-left:0;}.page.active{display:block;padding:10px;}}
+</style>
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="loading-logo">HomeMaker</div>
+  <div class="loading-sub">Family Finance</div>
+  <div class="loading-spinner"></div>
+  <div class="loading-msg" id="loading-msg">Connecting to Firebase…</div>
+</div>
+
+<div id="app">
+<div id="sidebar">
+  <div class="sidebar-logo">
+    <div class="app-name">HomeMaker</div>
+    <div class="app-sub">Family Finance</div>
+  </div>
+  <div class="sync-status">
+    <div class="sync-dot" id="sync-dot"></div>
+    <span class="sync-label" id="sync-label">Connecting…</span>
+  </div>
+  <div class="month-sel">
+    <label>Active Month</label>
+    <select id="globalMonth" onchange="setMonth(this.value)"></select>
+  </div>
+  <div class="nav-section">
+    <div class="nav-label">Menu</div>
+    <div class="nav-item active" onclick="showPage('dashboard')"><span class="icon">⬛</span><span>Dashboard</span></div>
+    <div class="nav-item" onclick="showPage('budget')"><span class="icon">📋</span><span>Budget</span></div>
+    <div class="nav-item" onclick="showPage('actuals')"><span class="icon">🧾</span><span>Actuals</span></div>
+    <div class="nav-item" onclick="showPage('income')"><span class="icon">💰</span><span>Income</span></div>
+    <div class="nav-item" onclick="showPage('savings')"><span class="icon">🏦</span><span>Savings</span></div>
+    <div class="nav-item" onclick="showPage('members')"><span class="icon">👨‍👩‍👧</span><span>Family</span></div>
+    <div class="nav-item" onclick="showPage('familyincome')"><span class="icon">🏠</span><span>Family Income</span></div>
+    <div class="nav-item" onclick="showPage('reports')"><span class="icon">📊</span><span>Reports</span></div>
+    <div class="nav-item" onclick="showPage('masters')"><span class="icon">⚙️</span><span>Masters</span></div>
+    <div class="nav-label" style="margin-top:8px">Kitchen</div>
+    <div class="nav-item" onclick="showPage('inventory')"><span class="icon">🏪</span><span>Inventory</span></div>
+    <div class="nav-item" onclick="showPage('recipes')"><span class="icon">🍳</span><span>Recipes</span></div>
+    <div class="nav-item" onclick="showPage('weeklymenu')"><span class="icon">📅</span><span>Weekly Menu</span></div>
+    <div class="nav-item" onclick="showPage('shopping')"><span class="icon">🛒</span><span>Shopping List</span></div>
+  </div>
+  <div class="sidebar-footer">HomeMaker v2.0 · Firebase</div>
+</div>
+
+<div id="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="topbar-title" id="pageTitle">Dashboard</div>
+      <span class="live-badge"><span class="live-dot"></span>Live Sync</span>
+    </div>
+    <div class="topbar-right">
+      <span id="topMonthLabel" style="font-size:13px;color:var(--ink-muted);margin-right:4px;"></span>
+      <button class="btn btn-outline btn-sm" onclick="window.print()">🖨 Print</button>
+    </div>
+  </div>
+
+  <div id="page-dashboard" class="page active">
+    <div class="metric-grid" id="dash-metrics"></div>
+    <div class="two-col">
+      <div class="card"><div class="card-header"><div class="card-title">Budget vs Actual</div></div><div id="dash-chart"></div></div>
+      <div class="card"><div class="card-header"><div class="card-title">Category Summary</div></div><div id="dash-category"></div></div>
+    </div>
+    <div class="two-col mt">
+      <div class="card"><div class="card-header"><div class="card-title">Recent Transactions</div></div><div id="dash-recent"></div></div>
+      <div class="card"><div class="card-header"><div class="card-title">Savings Tracker</div></div><div id="dash-savings"></div></div>
+    </div>
+  </div>
+
+  <div id="page-budget" class="page">
+    <div class="section-head">
+      <div><div class="section-title">Monthly Budget</div><div class="section-sub">Set planned amounts per category</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-outline btn-sm" onclick="copyBudget()">📋 Copy from last month</button>
+        <button class="btn btn-primary" onclick="openBudgetModal()">+ Add Category</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Category</th><th>Type</th><th>Budgeted (₹)</th><th>Actual (₹)</th><th>Variance</th><th>Status</th><th></th></tr></thead>
+        <tbody id="budget-tbody"></tbody>
+      </table></div>
+      <div class="sum-row" id="budget-sum"></div>
+    </div>
+  </div>
+
+  <div id="page-actuals" class="page">
+    <div class="section-head">
+      <div><div class="section-title">Expense Records</div><div class="section-sub">Record actual spending</div></div>
+      <button class="btn btn-primary" onclick="openActualModal()">+ Add Expense</button>
+    </div>
+    <div class="tabs" id="actual-tabs"></div>
+    <div class="card">
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Member</th><th>Amount (₹)</th><th>Payment</th><th>Note</th><th></th></tr></thead>
+        <tbody id="actual-tbody"></tbody>
+      </table></div>
+      <div class="sum-row" id="actual-sum"></div>
+    </div>
+  </div>
+
+  <div id="page-income" class="page">
+    <div class="section-head">
+      <div><div class="section-title">Income Records</div><div class="section-sub">Track all earnings</div></div>
+      <button class="btn btn-primary" onclick="openIncomeModal()">+ Add Income</button>
+    </div>
+    <div class="card">
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Date</th><th>Source</th><th>Member</th><th>Type</th><th>Amount (₹)</th><th>Note</th><th></th></tr></thead>
+        <tbody id="income-tbody"></tbody>
+      </table></div>
+      <div class="sum-row" id="income-sum"></div>
+    </div>
+  </div>
+
+  <div id="page-savings" class="page">
+    <div class="section-head">
+      <div><div class="section-title">Savings & Investments</div><div class="section-sub">Track your wealth growth</div></div>
+      <button class="btn btn-primary" onclick="openSavingsModal()">+ Add Entry</button>
+    </div>
+    <div class="metric-grid" id="savings-metrics"></div>
+    <div class="card">
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Name</th><th>Type</th><th>Invested (₹)</th><th>Current Value (₹)</th><th>Return</th><th>Notes</th><th></th></tr></thead>
+        <tbody id="savings-tbody"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <div id="page-members" class="page">
+    <div class="section-head">
+      <div><div class="section-title">Family Members</div><div class="section-sub">Manage household members</div></div>
+      <button class="btn btn-primary" onclick="openMemberModal()">+ Add Member</button>
+    </div>
+    <div id="members-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;"></div>
+  </div>
+
+  <div id="page-reports" class="page">
+    <div class="section-head"><div><div class="section-title">Monthly Reports</div><div class="section-sub">Overview across all months</div></div></div>
+    <div class="metric-grid" id="report-metrics"></div>
+    <div class="two-col">
+      <div class="card"><div class="card-header"><div class="card-title">Monthly Spend Trend</div></div><div id="report-trend"></div></div>
+      <div class="card"><div class="card-header"><div class="card-title">Category Breakdown (All Time)</div></div><div id="report-breakdown"></div></div>
+    </div>
+    <div class="card mt">
+      <div class="card-header"><div class="card-title">Month-wise Summary</div></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Month</th><th>Member Income</th><th>Family Income</th><th>Total Income</th><th>Budget</th><th>Actual Spend</th><th>Savings</th><th>Status</th></tr></thead>
+        <tbody id="report-tbody"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- FAMILY INCOME -->
+  <div id="page-familyincome" class="page">
+    <div class="section-head">
+      <div><div class="section-title">Family Income</div><div class="section-sub">Rental, interest & other passive income sources</div></div>
+      <button class="btn btn-primary" onclick="openFamilyIncomeModal()">+ Add Income Source</button>
+    </div>
+    <div class="metric-grid" id="fi-metrics"></div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Income Sources Master</div><div style="font-size:11px;color:var(--ink-muted)">Recurring sources — edit anytime</div></div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Source Name</th><th>Type</th><th>Property / Detail</th><th>Expected (₹/mo)</th><th>Active</th><th></th></tr></thead>
+          <tbody id="fi-sources-tbody"></tbody>
+        </table></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Monthly Actuals</div><div><button class="btn btn-primary btn-sm" onclick="openFIActualModal()">+ Record Receipt</button></div></div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Date</th><th>Source</th><th>Amount (₹)</th><th>Note</th><th></th></tr></thead>
+          <tbody id="fi-actual-tbody"></tbody>
+        </table></div>
+        <div class="sum-row" id="fi-actual-sum"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MASTERS -->
+  <div id="page-masters" class="page">
+    <div class="section-head"><div><div class="section-title">Masters</div><div class="section-sub">Configure payment methods and other master data</div></div></div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Payment Methods</div>
+          <button class="btn btn-primary btn-sm" onclick="openPaymentModal()">+ Add</button>
+        </div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Payment Method</th><th>Type</th><th>Description</th><th>Active</th><th></th></tr></thead>
+          <tbody id="pm-tbody"></tbody>
+        </table></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Family Income Types</div><div style="font-size:11px;color:var(--ink-muted)">Used as categories in Family Income</div></div>
+        <div id="fi-types-list" style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0;"></div>
+        <div style="margin-top:14px;display:flex;gap:8px;">
+          <input id="fi-type-input" placeholder="Add new type e.g. Rental" style="flex:1;padding:8px 12px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:13px;background:var(--cream);color:var(--ink);outline:none;">
+          <button class="btn btn-primary btn-sm" onclick="addFIType()">Add</button>
+        </div>
+      </div>
+  </div><!-- end page-masters -->
+</div>
+</div>
+
+<!-- ═══════════════ KITCHEN PAGES ═══════════════ -->
+<div id="page-inventory" class="page">
+  <div class="section-head">
+    <div><div class="section-title">Kitchen Inventory</div><div class="section-sub">Track stock levels for all kitchen items</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <select id="inv-cat-filter" onchange="renderInventory()" style="padding:6px 10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:13px;background:var(--cream);color:var(--ink);outline:none;">
+        <option value="">All Categories</option>
+        <option>Vegetables</option><option>Fruits</option><option>Grains & Rice</option>
+        <option>Pulses & Dal</option><option>Spices</option><option>Oil & Ghee</option>
+        <option>Dairy</option><option>Meat & Fish</option><option>Snacks</option><option>Other</option>
+      </select>
+      <button class="btn btn-primary" onclick="openInventoryModal()">+ Add Item</button>
+    </div>
+  </div>
+  <div class="metric-grid" id="inv-metrics"></div>
+  <div class="card">
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Item</th><th>Category</th><th>In Stock</th><th>Unit</th><th>Min Stock</th><th>Status</th><th>Last Updated</th><th></th></tr></thead>
+      <tbody id="inv-tbody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<div id="page-recipes" class="page">
+  <div class="section-head">
+    <div><div class="section-title">Recipe Master</div><div class="section-sub">Add dishes with ingredients — used for menu planning & shopping</div></div>
+    <button class="btn btn-primary" onclick="openRecipeModal()">+ Add Recipe</button>
+  </div>
+  <div id="recipes-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;"></div>
+</div>
+
+<div id="page-weeklymenu" class="page">
+  <div class="section-head">
+    <div><div class="section-title">Weekly Menu</div><div class="section-sub">Plan meals for the week — stock auto-deducted on confirm</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <select id="menu-week-sel" onchange="renderWeeklyMenu()" style="padding:6px 10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:13px;background:var(--cream);color:var(--ink);outline:none;"></select>
+      <button class="btn btn-teal" onclick="confirmMenu()" style="background:var(--teal);color:#fff;">✅ Confirm & Deduct Stock</button>
+      <button class="btn btn-primary" onclick="generateShoppingFromMenu()">🛒 Generate Shopping List</button>
+    </div>
+  </div>
+  <div id="weekly-menu-grid"></div>
+</div>
+
+<div id="page-shopping" class="page">
+  <div class="section-head">
+    <div><div class="section-title">Shopping List</div><div class="section-sub">Items needed based on weekly menu vs current stock</div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-outline btn-sm" onclick="clearChecked()">Clear Checked</button>
+      <button class="btn btn-primary" onclick="markAllPurchased()">✅ Mark All Purchased</button>
+    </div>
+  </div>
+  <div class="metric-grid" id="shop-metrics"></div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-header"><div class="card-title">To Buy</div></div>
+      <div id="shop-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Already in Stock</div></div>
+      <div id="shop-instock"></div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop" id="modal-budget">
+  <div class="modal">
+    <h3 id="bmodal-title">Add Budget Category</h3>
+    <input type="hidden" id="bmodal-id">
+    <div class="form-grid2">
+      <div class="form-row"><label>Category Name</label><input id="bm-name" placeholder="e.g. Groceries"></div>
+      <div class="form-row"><label>Type</label>
+        <select id="bm-type"><option>Food & Groceries</option><option>Housing</option><option>Education</option><option>Healthcare</option><option>Transport</option><option>Entertainment</option><option>Utilities</option><option>Clothing</option><option>Personal Care</option><option>Savings</option><option>Investment</option><option>Other</option></select>
+      </div>
+    </div>
+    <div class="form-row"><label>Budgeted Amount (₹)</label><input id="bm-amount" type="number" placeholder="0" min="0"></div>
+    <div class="form-row"><label>Notes</label><textarea id="bm-note" rows="2"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-budget')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBudget()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-actual">
+  <div class="modal">
+    <h3>Add Expense</h3>
+    <div class="form-grid2">
+      <div class="form-row"><label>Date</label><input id="am-date" type="date"></div>
+      <div class="form-row"><label>Amount (₹)</label><input id="am-amount" type="number" placeholder="0" min="0"></div>
+    </div>
+    <div class="form-row"><label>Description</label><input id="am-desc" placeholder="What was this for?"></div>
+    <div class="form-grid2">
+      <div class="form-row"><label>Category</label><select id="am-cat"></select></div>
+      <div class="form-row"><label>Member</label><select id="am-member"></select></div>
+    </div>
+    <div class="form-row"><label>Payment Method</label>
+      <select id="am-pay"><option>Cash</option><option>UPI</option><option>Credit Card</option><option>Debit Card</option><option>Net Banking</option><option>Other</option></select>
+    </div>
+    <div class="form-row"><label>Note</label><textarea id="am-note" rows="2"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-actual')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveActual()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-income">
+  <div class="modal">
+    <h3>Add Income</h3>
+    <div class="form-grid2">
+      <div class="form-row"><label>Date</label><input id="im-date" type="date"></div>
+      <div class="form-row"><label>Amount (₹)</label><input id="im-amount" type="number" placeholder="0" min="0"></div>
+    </div>
+    <div class="form-row"><label>Source</label><input id="im-source" placeholder="e.g. Salary, Freelance"></div>
+    <div class="form-grid2">
+      <div class="form-row"><label>Member</label><select id="im-member"></select></div>
+      <div class="form-row"><label>Type</label>
+        <select id="im-type"><option>Salary</option><option>Business</option><option>Freelance</option><option>Rental</option><option>Interest</option><option>Dividend</option><option>Gift</option><option>Other</option></select>
+      </div>
+    </div>
+    <div class="form-row"><label>Note</label><textarea id="im-note" rows="2"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-income')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveIncome()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-savings">
+  <div class="modal">
+    <h3 id="smodal-title">Add Savings / Investment</h3>
+    <input type="hidden" id="smodal-id">
+    <div class="form-row"><label>Name</label><input id="sm-name" placeholder="e.g. SBI FD, Nifty 50 SIP"></div>
+    <div class="form-grid2">
+      <div class="form-row"><label>Type</label>
+        <select id="sm-type"><option>Emergency Fund</option><option>Fixed Deposit</option><option>Recurring Deposit</option><option>Mutual Fund</option><option>PPF</option><option>NPS</option><option>Gold</option><option>Stocks</option><option>Real Estate</option><option>Other</option></select>
+      </div>
+      <div class="form-row"><label>Invested (₹)</label><input id="sm-invested" type="number" placeholder="0" min="0"></div>
+    </div>
+    <div class="form-row"><label>Current Value (₹)</label><input id="sm-current" type="number" placeholder="0" min="0"></div>
+    <div class="form-row"><label>Notes</label><textarea id="sm-note" rows="2"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-savings')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSavingsEntry()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modal-member">
+  <div class="modal">
+    <h3>Add Family Member</h3>
+    <input type="hidden" id="mmid">
+    <div class="form-row"><label>Name</label><input id="mm-name" placeholder="Full name"></div>
+    <div class="form-grid2">
+      <div class="form-row"><label>Role</label>
+        <select id="mm-role"><option>Earning Member</option><option>Student</option><option>Child</option><option>Senior / Retired</option><option>Homemaker</option></select>
+      </div>
+      <div class="form-row"><label>Age</label><input id="mm-age" type="number" placeholder="Age" min="0"></div>
+    </div>
+    <div class="form-row"><label>Monthly Income (₹)</label><input id="mm-income" type="number" placeholder="0 if not earning" min="0"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-member')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMember()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Method Modal -->
+<div class="modal-backdrop" id="modal-payment">
+  <div class="modal">
+    <h3 id="pm-modal-title">Add Payment Method</h3>
+    <input type="hidden" id="pm-id">
+    <div class="form-row"><label>Method Name</label><input id="pm-name" placeholder="e.g. GPay, HDFC Credit Card"></div>
+    <div class="form-grid2">
+      <div class="form-row"><label>Type</label>
+        <select id="pm-type">
+          <option>UPI</option><option>Credit Card</option><option>Debit Card</option>
+          <option>Net Banking</option><option>Cash</option><option>Wallet</option>
+          <option>Cheque</option><option>NEFT/RTGS</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Active</label>
+        <select id="pm-active"><option value="yes">Yes</option><option value="no">No</option></select>
+      </div>
+    </div>
+    <div class="form-row"><label>Description</label><input id="pm-desc" placeholder="e.g. Primary UPI for daily expenses"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-payment')">Cancel</button>
+      <button class="btn btn-primary" onclick="savePaymentMethod()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Family Income Source Modal -->
+<div class="modal-backdrop" id="modal-fisource">
+  <div class="modal">
+    <h3 id="fi-src-title">Add Income Source</h3>
+    <input type="hidden" id="fi-src-id">
+    <div class="form-row"><label>Source Name</label><input id="fi-src-name" placeholder="e.g. Kozhikode House Rent"></div>
+    <div class="form-grid2">
+      <div class="form-row"><label>Type</label><select id="fi-src-type"></select></div>
+      <div class="form-row"><label>Expected Monthly (₹)</label><input id="fi-src-expected" type="number" placeholder="0" min="0"></div>
+    </div>
+    <div class="form-row"><label>Property / Detail</label><input id="fi-src-detail" placeholder="e.g. Tenant name, bank, property address"></div>
+    <div class="form-row"><label>Active</label>
+      <select id="fi-src-active"><option value="yes">Yes</option><option value="no">No</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-fisource')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveFISource()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Family Income Actual Modal -->
+<div class="modal-backdrop" id="modal-fiactual">
+  <div class="modal">
+    <h3>Record Income Receipt</h3>
+    <div class="form-grid2">
+      <div class="form-row"><label>Date</label><input id="fia-date" type="date"></div>
+      <div class="form-row"><label>Amount (₹)</label><input id="fia-amount" type="number" placeholder="0" min="0"></div>
+    </div>
+    <div class="form-row"><label>Source</label><select id="fia-source"></select></div>
+    <div class="form-row"><label>Payment Method</label><select id="fia-payment"></select></div>
+    <div class="form-row"><label>Note</label><textarea id="fia-note" rows="2" placeholder="e.g. Received from tenant via NEFT"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-fiactual')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveFIActual()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Inventory Item Modal -->
+<div class="modal-backdrop" id="modal-inventory">
+  <div class="modal">
+    <h3 id="inv-modal-title">Add Inventory Item</h3>
+    <input type="hidden" id="inv-id">
+    <div class="form-grid2">
+      <div class="form-row"><label>Item Name</label><input id="inv-name" placeholder="e.g. Basmati Rice"></div>
+      <div class="form-row"><label>Category</label>
+        <select id="inv-cat">
+          <option>Vegetables</option><option>Fruits</option><option>Grains & Rice</option>
+          <option>Pulses & Dal</option><option>Spices</option><option>Oil & Ghee</option>
+          <option>Dairy</option><option>Meat & Fish</option><option>Snacks</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-grid2">
+      <div class="form-row"><label>Current Stock</label><input id="inv-qty" type="number" placeholder="0" min="0" step="0.1"></div>
+      <div class="form-row"><label>Unit</label>
+        <select id="inv-unit"><option>kg</option><option>g</option><option>litre</option><option>ml</option><option>pcs</option><option>packet</option><option>bottle</option><option>dozen</option><option>bunch</option><option>other</option></select>
+      </div>
+    </div>
+    <div class="form-row"><label>Minimum Stock (reorder level)</label><input id="inv-min" type="number" placeholder="0" min="0" step="0.1"></div>
+    <div class="form-row"><label>Notes</label><input id="inv-note" placeholder="Brand, storage tip etc."></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-inventory')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveInventoryItem()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Recipe Modal -->
+<div class="modal-backdrop" id="modal-recipe">
+  <div class="modal" style="width:540px">
+    <h3 id="recipe-modal-title">Add Recipe</h3>
+    <input type="hidden" id="recipe-id">
+    <div class="form-grid2">
+      <div class="form-row"><label>Dish Name</label><input id="recipe-name" placeholder="e.g. Dal Tadka"></div>
+      <div class="form-row"><label>Meal Type</label>
+        <select id="recipe-meal"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snack</option><option>Any</option></select>
+      </div>
+    </div>
+    <div class="form-grid2">
+      <div class="form-row"><label>Serves</label><input id="recipe-serves" type="number" value="4" min="1"></div>
+      <div class="form-row"><label>Prep Time (mins)</label><input id="recipe-time" type="number" placeholder="30" min="0"></div>
+    </div>
+    <div class="form-row"><label>Ingredients</label>
+      <div id="recipe-ingredients-list" style="margin-bottom:8px;"></div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:6px;align-items:center;">
+        <input id="ri-name" placeholder="Ingredient" style="padding:7px 10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:13px;background:var(--cream);color:var(--ink);outline:none;">
+        <input id="ri-qty" type="number" placeholder="Qty" min="0" step="0.1" style="padding:7px 10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:13px;background:var(--cream);color:var(--ink);outline:none;">
+        <select id="ri-unit" style="padding:7px 8px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:13px;background:var(--cream);color:var(--ink);outline:none;">
+          <option>kg</option><option>g</option><option>litre</option><option>ml</option><option>pcs</option><option>packet</option><option>tbsp</option><option>tsp</option><option>cup</option><option>bunch</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="addRecipeIngredient()">+</button>
+      </div>
+    </div>
+    <div class="form-row"><label>Instructions (optional)</label><textarea id="recipe-instructions" rows="3" placeholder="Brief cooking steps…"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-recipe')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRecipe()">Save Recipe</button>
+    </div>
+  </div>
+</div>
+
+<!-- Menu Dish Picker Modal -->
+<div class="modal-backdrop" id="modal-menudish">
+  <div class="modal">
+    <h3 id="menu-dish-title">Select Dish</h3>
+    <input type="hidden" id="md-day">
+    <input type="hidden" id="md-meal">
+    <div class="form-row"><label>Search / Pick Recipe</label>
+      <select id="md-recipe" style="width:100%;padding:9px 12px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:14px;background:var(--cream);color:var(--ink);outline:none;">
+        <option value="">— None / Clear —</option>
+      </select>
+    </div>
+    <div id="md-preview" style="margin-top:10px;font-size:13px;color:var(--ink-muted);"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-menudish')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMenuDish()">Set Dish</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK (compat v9) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDlcWIJ3BKefHXV0mX2Vxqqa9vlWCTYrJU",
+  authDomain: "homemaker-7dd4e.firebaseapp.com",
+  projectId: "homemaker-7dd4e",
+  storageBucket: "homemaker-7dd4e.firebasestorage.app",
+  messagingSenderId: "587106124281",
+  appId: "1:587106124281:web:e3b44deb03441a4ab67d28",
+  databaseURL: "https://homemaker-7dd4e-default-rtdb.firebaseio.com"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let DB = { members:[], months:{}, savings:[], paymentMethods:[], fiSources:[], fiTypes:[], inventory:[], recipes:[], weeklyMenus:{}, shoppingList:[], currentMonth:'' };
+
+// ── SYNC STATUS ──
+function setSyncStatus(state, label) {
+  document.getElementById('sync-dot').className = 'sync-dot ' + state;
+  document.getElementById('sync-label').textContent = label;
+}
+
+// ── FIREBASE WRITE HELPERS ──
+function fbSet(path, val) {
+  setSyncStatus('syncing','Saving…');
+  return db.ref(path).set(val)
+    .then(()=>setSyncStatus('connected','All synced'))
+    .catch(e=>{setSyncStatus('error','Sync error');console.error(e);});
+}
+function fbPush(path, val) {
+  setSyncStatus('syncing','Saving…');
+  return db.ref(path).push(val)
+    .then(()=>setSyncStatus('connected','All synced'))
+    .catch(e=>{setSyncStatus('error','Sync error');console.error(e);});
+}
+function fbRemove(path) {
+  setSyncStatus('syncing','Removing…');
+  return db.ref(path).remove()
+    .then(()=>setSyncStatus('connected','All synced'))
+    .catch(e=>{setSyncStatus('error','Sync error');console.error(e);});
+}
+
+// ── REAL-TIME LISTENERS ──
+function startListeners() {
+  db.ref('members').on('value', snap => {
+    DB.members = snap.val() ? Object.entries(snap.val()).map(([id,v])=>({id,...v})) : [];
+    renderAll();
+  });
+  db.ref('savings').on('value', snap => {
+    DB.savings = snap.val() ? Object.entries(snap.val()).map(([id,v])=>({id,...v})) : [];
+    renderAll();
+  });
+  db.ref('paymentMethods').on('value', snap => {
+    DB.paymentMethods = snap.val() ? Object.entries(snap.val()).map(([id,v])=>({id,...v})) : [];
+    renderAll();
+  });
+  db.ref('fiSources').on('value', snap => {
+    DB.fiSources = snap.val() ? Object.entries(snap.val()).map(([id,v])=>({id,...v})) : [];
+    renderAll();
+  });
+  db.ref('fiTypes').on('value', snap => {
+    DB.fiTypes = snap.val() ? Object.values(snap.val()) : ['Rental','Interest','Dividend','Agricultural','Other'];
+    renderAll();
+  });
+  db.ref('months').on('value', snap => {
+    const raw = snap.val() || {};
+    DB.months = {};
+    Object.entries(raw).forEach(([ym,mdata]) => {
+      DB.months[ym] = {
+        budget: mdata.budget ? Object.entries(mdata.budget).map(([id,v])=>({id,...v})) : [],
+        actuals: mdata.actuals ? Object.entries(mdata.actuals).map(([id,v])=>({id,...v})) : [],
+        income: mdata.income ? Object.entries(mdata.income).map(([id,v])=>({id,...v})) : [],
+        fiActuals: mdata.fiActuals ? Object.entries(mdata.fiActuals).map(([id,v])=>({id,...v})) : []
+      };
+    });
+    renderAll();
+  });
+  db.ref('inventory').on('value', snap => {
+    DB.inventory = snap.val() ? Object.entries(snap.val()).map(([id,v])=>({id,...v})) : [];
+    renderAll();
+  });
+  db.ref('recipes').on('value', snap => {
+    DB.recipes = snap.val() ? Object.entries(snap.val()).map(([id,v])=>({id,...v})) : [];
+    renderAll();
+  });
+  db.ref('weeklyMenus').on('value', snap => {
+    DB.weeklyMenus = snap.val() || {};
+    renderAll();
+  });
+  db.ref('shoppingList').on('value', snap => {
+    DB.shoppingList = snap.val() ? Object.entries(snap.val()).map(([id,v])=>({id,...v})) : [];
+    renderAll();
+  });
+  db.ref('.info/connected').on('value', snap => {
+    if (snap.val()) setSyncStatus('connected','All synced');
+    else setSyncStatus('error','Offline');
+  });
+}
+
+// ── MONTH HELPERS ──
+const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function monthLabel(ym){const[y,m]=ym.split('-');return MN[parseInt(m)-1]+' '+y;}
+function todayYM(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+function todayStr(){return new Date().toISOString().slice(0,10);}
+function getMonth(m){if(!DB.months[m])DB.months[m]={budget:[],actuals:[],income:[]};return DB.months[m];}
+
+function buildMonthOptions() {
+  const sel = document.getElementById('globalMonth');
+  const cur = sel.value || DB.currentMonth;
+  sel.innerHTML='';
+  const now=new Date();
+  for(let i=-3;i<=2;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()+i,1);
+    const val=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    const o=document.createElement('option');
+    o.value=val;o.textContent=monthLabel(val);
+    if(val===cur)o.selected=true;
+    sel.appendChild(o);
+  }
+}
+
+function setMonth(v) {
+  DB.currentMonth=v;
+  db.ref('currentMonth').set(v);
+  document.getElementById('topMonthLabel').textContent=monthLabel(v);
+  renderAll();
+}
+
+// ── NAV ──
+const PT={dashboard:'Dashboard',budget:'Monthly Budget',actuals:'Expense Records',income:'Income',savings:'Savings & Investments',members:'Family Members',familyincome:'Family Income',masters:'Masters',reports:'Reports',inventory:'Kitchen Inventory',recipes:'Recipe Master',weeklymenu:'Weekly Menu',shopping:'Shopping List'};
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>{if(n.getAttribute('onclick').includes("'"+id+"'"))n.classList.add('active');});
+  document.getElementById('pageTitle').textContent=PT[id]||id;
+  renderAll();
+}
+
+// ── UTILS ──
+function fmtMoney(n){return '₹'+Math.round(n||0).toLocaleString('en-IN');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function catColor(cat){const m={'Food & Groceries':'#1D9E75','Housing':'#2B5A9E','Education':'#C8922A','Healthcare':'#C0392B','Transport':'#7B5EA7','Entertainment':'#E67E22','Utilities':'#16A085','Clothing':'#8E44AD','Personal Care':'#2980B9','Savings':'#27AE60','Investment':'#F39C12','Other':'#95A5A6'};return m[cat]||'#888';}
+function actualForCat(m,n){return m.actuals.filter(a=>a.category===n).reduce((s,a)=>s+(+a.amount||0),0);}
+
+function renderAll(){
+  const active=document.querySelector('.page.active');if(!active)return;
+  buildMonthOptions();
+  const id=active.id.replace('page-','');
+  if(id==='dashboard')renderDashboard();
+  if(id==='budget')renderBudget();
+  if(id==='actuals')renderActuals();
+  if(id==='income')renderIncome();
+  if(id==='savings')renderSavings();
+  if(id==='members')renderMembers();
+  if(id==='familyincome')renderFamilyIncome();
+  if(id==='masters')renderMasters();
+  if(id==='reports')renderReports();
+  if(id==='inventory')renderInventory();
+  if(id==='recipes')renderRecipes();
+  if(id==='weeklymenu')renderWeeklyMenu();
+  if(id==='shopping')renderShopping();
+}
+
+// ── PAYMENT METHOD HELPERS ──
+function getPaymentOptions() {
+  const defaults = ['Cash','UPI','Credit Card','Debit Card','Net Banking','Other'];
+  const custom = DB.paymentMethods.filter(p=>p.active==='yes').map(p=>p.name);
+  return [...new Set([...defaults, ...custom])];
+}
+function paymentSelect(elId) {
+  const el = document.getElementById(elId);
+  const cur = el.value;
+  el.innerHTML = getPaymentOptions().map(p=>`<option${p===cur?' selected':''}>${p}</option>`).join('');
+}
+
+// ── DASHBOARD ──
+function renderDashboard(){
+  const m=getMonth(DB.currentMonth);
+  const tMemberInc=m.income.reduce((s,i)=>s+(+i.amount||0),0);
+  const tFamilyInc=(m.fiActuals||[]).reduce((s,a)=>s+(+a.amount||0),0);
+  const tInc=tMemberInc+tFamilyInc;
+  const tBud=m.budget.reduce((s,b)=>s+(+b.amount||0),0);
+  const tAct=m.actuals.reduce((s,a)=>s+(+a.amount||0),0);
+  const sav=tInc-tAct;
+  const assets=DB.savings.reduce((s,x)=>s+(+x.current||0),0);
+  document.getElementById('dash-metrics').innerHTML=`
+    <div class="metric-card accent"><div class="m-label">Total Income</div><div class="m-val" style="color:var(--teal)">${fmtMoney(tInc)}</div><div class="m-sub">Member ${fmtMoney(tMemberInc)} + Family ${fmtMoney(tFamilyInc)}</div></div>
+    <div class="metric-card"><div class="m-label">Total Budget</div><div class="m-val">${fmtMoney(tBud)}</div><div class="m-sub">Planned expenses</div></div>
+    <div class="metric-card"><div class="m-label">Actual Spend</div><div class="m-val" style="color:${tAct>tBud?'var(--red)':'var(--ink)'}">${fmtMoney(tAct)}</div><div class="m-sub">${m.actuals.length} transactions</div></div>
+    <div class="metric-card"><div class="m-label">Net Savings</div><div class="m-val" style="color:${sav>=0?'var(--teal)':'var(--red)'}">${fmtMoney(sav)}</div><div class="m-sub">${tInc>0?Math.round(sav/tInc*100):0}% of income</div></div>
+    <div class="metric-card gold"><div class="m-label">Total Net Worth</div><div class="m-val" style="color:var(--gold)">${fmtMoney(assets)}</div><div class="m-sub">All savings & investments</div></div>
+    <div class="metric-card"><div class="m-label">Budget Used</div><div class="m-val" style="color:${tBud>0&&tAct/tBud>1?'var(--red)':'var(--ink)'}">${tBud>0?Math.round(tAct/tBud*100):0}%</div><div class="m-sub">of monthly budget</div></div>`;
+  const ce=document.getElementById('dash-chart');
+  if(!m.budget.length){ce.innerHTML='<div class="empty"><div class="e-icon">📋</div><div class="e-text">Add budget categories to see chart</div></div>';}
+  else{const mx=Math.max(...m.budget.map(b=>Math.max(+b.amount||0,actualForCat(m,b.name))),1);ce.innerHTML=m.budget.map(b=>{const act=actualForCat(m,b.name);const bw=Math.round((+b.amount||0)/mx*100),aw=Math.round(act/mx*100);const ov=act>(+b.amount||0);return `<div class="chart-bar-item"><span class="chart-bar-label" title="${b.name}">${b.name}</span><div class="chart-bar-track"><div class="chart-bar-fill budget" style="width:${bw}%;background:${catColor(b.type)};"></div><div class="chart-bar-fill actual" style="width:${aw}%;background:${ov?'#C0392B':catColor(b.type)};"></div></div><span class="chart-bar-val">${fmtMoney(act)}/${fmtMoney(+b.amount||0)}</span></div>`;}).join('');}
+  const ct={};m.actuals.forEach(a=>{ct[a.category]=(ct[a.category]||0)+(+a.amount||0);});
+  const cs=Object.entries(ct).sort((a,b)=>b[1]-a[1]);const cte=document.getElementById('dash-category');
+  if(!cs.length)cte.innerHTML='<div class="empty"><div class="e-icon">🧾</div><div class="e-text">No expenses recorded yet</div></div>';
+  else{const mv=cs[0][1];cte.innerHTML=cs.map(([c,v])=>`<div class="progress-wrap"><div class="progress-info"><span class="progress-name">${c}</span><span class="progress-nums">${fmtMoney(v)}</span></div><div class="progress-track"><div class="progress-fill" style="width:${Math.round(v/mv*100)}%;background:${catColor(c)};"></div></div></div>`).join('');}
+  const rc=[...m.actuals].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);const re=document.getElementById('dash-recent');
+  if(!rc.length)re.innerHTML='<div class="empty"><div class="e-icon">📝</div><div class="e-text">No expenses yet</div></div>';
+  else re.innerHTML=rc.map(a=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);"><div><div style="font-size:13px;font-weight:500">${a.desc}</div><div style="font-size:11px;color:var(--ink-muted)">${a.date} · ${a.category} · ${a.member||''}</div></div><div style="font-size:14px;font-weight:600;color:var(--red)">${fmtMoney(a.amount)}</div></div>`).join('');
+  const se=document.getElementById('dash-savings');
+  if(!DB.savings.length)se.innerHTML='<div class="empty"><div class="e-icon">🏦</div><div class="e-text">Add savings & investments</div></div>';
+  else se.innerHTML=DB.savings.slice(0,5).map(s=>{const r=(+s.current||0)-(+s.invested||0);const p=s.invested>0?Math.round(r/s.invested*100):0;return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);"><div><div style="font-size:13px;font-weight:500">${s.name}</div><div style="font-size:11px;color:var(--ink-muted)">${s.type}</div></div><div style="text-align:right"><div style="font-size:14px;font-weight:600">${fmtMoney(s.current)}</div><div style="font-size:11px;color:${p>=0?'var(--teal)':'var(--red)'};">${p>=0?'+':''}${p}%</div></div></div>`;}).join('');
+}
+
+// ── BUDGET ──
+function renderBudget(){
+  const m=getMonth(DB.currentMonth);const tb=document.getElementById('budget-tbody');
+  if(!m.budget.length){tb.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="e-icon">📋</div><div class="e-text">No budget categories. Click "+ Add Category".</div></div></td></tr>`;document.getElementById('budget-sum').innerHTML='';return;}
+  let tB=0,tA=0;
+  tb.innerHTML=m.budget.map(b=>{const act=actualForCat(m,b.name);const v=act-(+b.amount||0);tB+=(+b.amount||0);tA+=act;const ov=act>(+b.amount||0);const bx=ov?`<span class="badge badge-red">Over</span>`:act===0?`<span class="badge badge-gray">Unused</span>`:`<span class="badge badge-green">On Track</span>`;return `<tr><td>${b.name}</td><td><span class="badge" style="background:${catColor(b.type)}22;color:${catColor(b.type)}">${b.type}</span></td><td>${fmtMoney(b.amount)}</td><td>${fmtMoney(act)}</td><td style="color:${ov?'var(--red)':'var(--teal)'};font-weight:600">${ov?'+':''}${fmtMoney(Math.abs(v))}</td><td>${bx}</td><td><button class="icon-btn" onclick="editBudget('${b.id}')">✏️</button><button class="icon-btn" onclick="delBudget('${b.id}')">🗑️</button></td></tr>`;}).join('');
+  const n=tB-tA;document.getElementById('budget-sum').innerHTML=`<div class="sum-item"><div class="s-label">Total Budget</div><div class="s-val">${fmtMoney(tB)}</div></div><div class="sum-item"><div class="s-label">Total Actual</div><div class="s-val" style="color:${tA>tB?'var(--red)':'inherit'}">${fmtMoney(tA)}</div></div><div class="sum-item"><div class="s-label">Remaining</div><div class="s-val" style="color:${n>=0?'var(--teal)':'var(--red)'}">${fmtMoney(n)}</div></div>`;
+}
+function openBudgetModal(id){
+  document.getElementById('bmodal-id').value=id||'';document.getElementById('bmodal-title').textContent=id?'Edit Budget Category':'Add Budget Category';
+  if(id){const b=getMonth(DB.currentMonth).budget.find(x=>x.id===id);if(b){document.getElementById('bm-name').value=b.name;document.getElementById('bm-type').value=b.type;document.getElementById('bm-amount').value=b.amount;document.getElementById('bm-note').value=b.note||'';}}
+  else{document.getElementById('bm-name').value='';document.getElementById('bm-amount').value='';document.getElementById('bm-note').value='';}
+  document.getElementById('modal-budget').classList.add('open');
+}
+function editBudget(id){openBudgetModal(id);}
+function saveBudget(){
+  const name=document.getElementById('bm-name').value.trim();const amount=parseFloat(document.getElementById('bm-amount').value)||0;
+  if(!name){alert('Please enter a category name');return;}
+  const id=document.getElementById('bmodal-id').value;
+  const data={name,type:document.getElementById('bm-type').value,amount,note:document.getElementById('bm-note').value};
+  if(id)fbSet('months/'+DB.currentMonth+'/budget/'+id,data);else fbPush('months/'+DB.currentMonth+'/budget',data);
+  closeModal('modal-budget');
+}
+function delBudget(id){if(!confirm('Delete this budget category?'))return;fbRemove('months/'+DB.currentMonth+'/budget/'+id);}
+function copyBudget(){
+  const[y,mo]=DB.currentMonth.split('-').map(Number);const pd=new Date(y,mo-2,1);
+  const pk=pd.getFullYear()+'-'+String(pd.getMonth()+1).padStart(2,'0');
+  const prev=DB.months[pk];
+  if(!prev||!prev.budget.length){alert('No budget found for previous month.');return;}
+  if(!confirm('Copy budget from '+monthLabel(pk)+'?'))return;
+  const updates={};
+  prev.budget.forEach(b=>{const r=db.ref('months/'+DB.currentMonth+'/budget').push();updates['months/'+DB.currentMonth+'/budget/'+r.key]={name:b.name,type:b.type,amount:b.amount,note:b.note||''};});
+  setSyncStatus('syncing','Copying…');db.ref().update(updates).then(()=>setSyncStatus('connected','All synced'));
+}
+
+// ── ACTUALS ──
+let actualFilter='All';
+function renderActuals(){
+  const m=getMonth(DB.currentMonth);const cats=['All',...new Set(m.budget.map(b=>b.name))];
+  document.getElementById('actual-tabs').innerHTML=cats.map(c=>`<div class="tab ${actualFilter===c?'active':''}" onclick="setActualFilter('${c}')">${c}</div>`).join('');
+  const filtered=actualFilter==='All'?m.actuals:m.actuals.filter(a=>a.category===actualFilter);
+  const sorted=[...filtered].sort((a,b)=>b.date.localeCompare(a.date));const tb=document.getElementById('actual-tbody');
+  if(!sorted.length){tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="e-icon">🧾</div><div class="e-text">No expense records. Click "+ Add Expense".</div></div></td></tr>`;document.getElementById('actual-sum').innerHTML='';return;}
+  tb.innerHTML=sorted.map(a=>`<tr><td>${a.date}</td><td>${a.desc}</td><td><span class="badge" style="background:${catColor(a.category)}22;color:${catColor(a.category)}">${a.category}</span></td><td>${a.member||'-'}</td><td class="text-right text-red">${fmtMoney(a.amount)}</td><td><span class="badge badge-gray">${a.payment||'-'}</span></td><td style="font-size:12px;color:var(--ink-muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.note||''}</td><td><button class="icon-btn" onclick="delActual('${a.id}')">🗑️</button></td></tr>`).join('');
+  const tot=sorted.reduce((s,a)=>s+(+a.amount||0),0);document.getElementById('actual-sum').innerHTML=`<div class="sum-item"><div class="s-label">Total Expenses</div><div class="s-val text-red">${fmtMoney(tot)}</div></div>`;
+}
+function setActualFilter(c){actualFilter=c;renderActuals();}
+function openActualModal(){
+  const m=getMonth(DB.currentMonth);
+  document.getElementById('am-cat').innerHTML=m.budget.length?m.budget.map(b=>`<option>${b.name}</option>`).join(''):['Food & Groceries','Housing','Transport','Other'].map(c=>`<option>${c}</option>`).join('');
+  document.getElementById('am-member').innerHTML=DB.members.length?DB.members.map(x=>`<option>${x.name}</option>`).join(''):'<option>Self</option>';
+  paymentSelect('am-pay');
+  document.getElementById('am-date').value=todayStr();document.getElementById('am-amount').value='';document.getElementById('am-desc').value='';document.getElementById('am-note').value='';
+  document.getElementById('modal-actual').classList.add('open');
+}
+function saveActual(){
+  const desc=document.getElementById('am-desc').value.trim();const amount=parseFloat(document.getElementById('am-amount').value)||0;const date=document.getElementById('am-date').value;
+  if(!desc||!amount||!date){alert('Please fill in date, description and amount');return;}
+  fbPush('months/'+DB.currentMonth+'/actuals',{date,desc,amount,category:document.getElementById('am-cat').value,member:document.getElementById('am-member').value,payment:document.getElementById('am-pay').value,note:document.getElementById('am-note').value});
+  closeModal('modal-actual');
+}
+function delActual(id){if(!confirm('Delete this expense?'))return;fbRemove('months/'+DB.currentMonth+'/actuals/'+id);}
+
+// ── INCOME ──
+function renderIncome(){
+  const m=getMonth(DB.currentMonth);const sorted=[...m.income].sort((a,b)=>b.date.localeCompare(a.date));const tb=document.getElementById('income-tbody');
+  if(!sorted.length){tb.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="e-icon">💰</div><div class="e-text">No income records. Click "+ Add Income".</div></div></td></tr>`;document.getElementById('income-sum').innerHTML='';return;}
+  tb.innerHTML=sorted.map(i=>`<tr><td>${i.date}</td><td>${i.source}</td><td>${i.member||'-'}</td><td><span class="badge badge-blue">${i.type||'-'}</span></td><td class="text-right text-green">${fmtMoney(i.amount)}</td><td style="font-size:12px;color:var(--ink-muted)">${i.note||''}</td><td><button class="icon-btn" onclick="delIncome('${i.id}')">🗑️</button></td></tr>`).join('');
+  const tot=sorted.reduce((s,i)=>s+(+i.amount||0),0);document.getElementById('income-sum').innerHTML=`<div class="sum-item"><div class="s-label">Total Income</div><div class="s-val text-green">${fmtMoney(tot)}</div></div>`;
+}
+function openIncomeModal(){
+  document.getElementById('im-member').innerHTML=DB.members.length?DB.members.map(x=>`<option>${x.name}</option>`).join(''):'<option>Self</option>';
+  document.getElementById('im-date').value=todayStr();document.getElementById('im-amount').value='';document.getElementById('im-source').value='';document.getElementById('im-note').value='';
+  document.getElementById('modal-income').classList.add('open');
+}
+function saveIncome(){
+  const source=document.getElementById('im-source').value.trim();const amount=parseFloat(document.getElementById('im-amount').value)||0;const date=document.getElementById('im-date').value;
+  if(!source||!amount||!date){alert('Please fill in date, source and amount');return;}
+  fbPush('months/'+DB.currentMonth+'/income',{date,source,amount,member:document.getElementById('im-member').value,type:document.getElementById('im-type').value,note:document.getElementById('im-note').value});
+  closeModal('modal-income');
+}
+function delIncome(id){if(!confirm('Delete this income record?'))return;fbRemove('months/'+DB.currentMonth+'/income/'+id);}
+
+// ── SAVINGS ──
+function renderSavings(){
+  const tot=DB.savings.reduce((s,x)=>s+(+x.current||0),0);const inv=DB.savings.reduce((s,x)=>s+(+x.invested||0),0);const g=tot-inv;
+  document.getElementById('savings-metrics').innerHTML=`
+    <div class="metric-card"><div class="m-label">Total Invested</div><div class="m-val">${fmtMoney(inv)}</div></div>
+    <div class="metric-card green"><div class="m-label">Current Value</div><div class="m-val" style="color:var(--teal)">${fmtMoney(tot)}</div></div>
+    <div class="metric-card"><div class="m-label">Total Gain/Loss</div><div class="m-val" style="color:${g>=0?'var(--teal)':'var(--red)'}">${g>=0?'+':''}${fmtMoney(g)}</div></div>
+    <div class="metric-card"><div class="m-label">Overall Return</div><div class="m-val" style="color:${g>=0?'var(--teal)':'var(--red)'}">${inv>0?Math.round(g/inv*100):0}%</div></div>`;
+  const tb=document.getElementById('savings-tbody');
+  if(!DB.savings.length){tb.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="e-icon">🏦</div><div class="e-text">No entries yet.</div></div></td></tr>`;return;}
+  tb.innerHTML=DB.savings.map(s=>{const r=(+s.current||0)-(+s.invested||0);const p=s.invested>0?Math.round(r/s.invested*100):0;return `<tr><td>${s.name}</td><td><span class="badge badge-blue">${s.type}</span></td><td>${fmtMoney(s.invested)}</td><td>${fmtMoney(s.current)}</td><td style="color:${r>=0?'var(--teal)':'var(--red)'};font-weight:600">${r>=0?'+':''}${fmtMoney(Math.abs(r))} (${p}%)</td><td style="font-size:12px;color:var(--ink-muted)">${s.note||''}</td><td><button class="icon-btn" onclick="editSavings('${s.id}')">✏️</button><button class="icon-btn" onclick="delSavings('${s.id}')">🗑️</button></td></tr>`;}).join('');
+}
+function openSavingsModal(id){
+  document.getElementById('smodal-id').value=id||'';document.getElementById('smodal-title').textContent=id?'Edit Entry':'Add Savings / Investment';
+  if(id){const s=DB.savings.find(x=>x.id===id);if(s){document.getElementById('sm-name').value=s.name;document.getElementById('sm-type').value=s.type;document.getElementById('sm-invested').value=s.invested;document.getElementById('sm-current').value=s.current;document.getElementById('sm-note').value=s.note||'';}}
+  else{document.getElementById('sm-name').value='';document.getElementById('sm-invested').value='';document.getElementById('sm-current').value='';document.getElementById('sm-note').value='';}
+  document.getElementById('modal-savings').classList.add('open');
+}
+function editSavings(id){openSavingsModal(id);}
+function saveSavingsEntry(){
+  const name=document.getElementById('sm-name').value.trim();const invested=parseFloat(document.getElementById('sm-invested').value)||0;const current=parseFloat(document.getElementById('sm-current').value)||0;
+  if(!name){alert('Please enter a name');return;}
+  const id=document.getElementById('smodal-id').value;const data={name,type:document.getElementById('sm-type').value,invested,current,note:document.getElementById('sm-note').value};
+  if(id)fbSet('savings/'+id,data);else fbPush('savings',data);
+  closeModal('modal-savings');
+}
+function delSavings(id){if(!confirm('Delete this entry?'))return;fbRemove('savings/'+id);}
+
+// ── MEMBERS ──
+function renderMembers(){
+  const g=document.getElementById('members-grid');
+  if(!DB.members.length){g.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="e-icon">👨‍👩‍👧</div><div class="e-text">No members added.</div></div>`;return;}
+  const ri={'Earning Member':'💼','Student':'📚','Child':'🧒','Senior / Retired':'👴','Homemaker':'🏠'};
+  g.innerHTML=DB.members.map(m=>`<div class="card" style="text-align:center;padding:20px;"><div style="font-size:32px;margin-bottom:8px;">${ri[m.role]||'👤'}</div><div style="font-family:'Playfair Display',serif;font-size:16px;font-weight:600;">${m.name}</div><div style="font-size:12px;color:var(--ink-muted);margin:4px 0 8px;">${m.role}${m.age?' · Age '+m.age:''}</div>${m.income>0?`<div class="badge badge-green">Income: ${fmtMoney(m.income)}/mo</div>`:`<div class="badge badge-gray">Non-earning</div>`}<div style="display:flex;gap:6px;justify-content:center;margin-top:12px;"><button class="btn btn-outline btn-sm" onclick="editMember('${m.id}')">Edit</button><button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:none" onclick="delMember('${m.id}')">Remove</button></div></div>`).join('');
+}
+function openMemberModal(id){
+  document.getElementById('mmid').value=id||'';
+  if(id){const m=DB.members.find(x=>x.id===id);if(m){document.getElementById('mm-name').value=m.name;document.getElementById('mm-role').value=m.role;document.getElementById('mm-age').value=m.age||'';document.getElementById('mm-income').value=m.income||'';}}
+  else{document.getElementById('mm-name').value='';document.getElementById('mm-age').value='';document.getElementById('mm-income').value='';}
+  document.getElementById('modal-member').classList.add('open');
+}
+function editMember(id){openMemberModal(id);}
+function saveMember(){
+  const name=document.getElementById('mm-name').value.trim();if(!name){alert('Please enter a name');return;}
+  const id=document.getElementById('mmid').value;const data={name,role:document.getElementById('mm-role').value,age:document.getElementById('mm-age').value,income:parseFloat(document.getElementById('mm-income').value)||0};
+  if(id)fbSet('members/'+id,data);else fbPush('members',data);
+  closeModal('modal-member');
+}
+function delMember(id){if(!confirm('Remove this member?'))return;fbRemove('members/'+id);}
+
+// ── MASTERS — PAYMENT METHODS ──
+function renderMasters(){
+  const tb=document.getElementById('pm-tbody');
+  if(!DB.paymentMethods.length){
+    tb.innerHTML=`<tr><td colspan="5"><div class="empty"><div class="e-icon">💳</div><div class="e-text">No custom payment methods. Default ones (Cash, UPI etc.) are always available.</div></div></td></tr>`;
+  } else {
+    tb.innerHTML=DB.paymentMethods.map(p=>`<tr>
+      <td>${p.name}</td>
+      <td><span class="badge badge-blue">${p.type}</span></td>
+      <td style="font-size:12px;color:var(--ink-muted)">${p.desc||''}</td>
+      <td><span class="badge ${p.active==='yes'?'badge-green':'badge-gray'}">${p.active==='yes'?'Active':'Inactive'}</span></td>
+      <td><button class="icon-btn" onclick="editPaymentMethod('${p.id}')">✏️</button><button class="icon-btn" onclick="delPaymentMethod('${p.id}')">🗑️</button></td>
+    </tr>`).join('');
+  }
+  // FI Types
+  const types = DB.fiTypes.length ? DB.fiTypes : ['Rental','Interest','Dividend','Agricultural','Other'];
+  document.getElementById('fi-types-list').innerHTML = types.map(t=>`
+    <div style="display:flex;align-items:center;gap:4px;background:var(--gold-pale);border:1px solid var(--gold-light);border-radius:20px;padding:4px 10px;">
+      <span style="font-size:12px;color:var(--ink-soft)">${t}</span>
+      <button onclick="delFIType('${t}')" style="background:none;border:none;cursor:pointer;color:var(--ink-muted);font-size:12px;line-height:1;padding:0 2px;">×</button>
+    </div>`).join('');
+}
+function openPaymentModal(id){
+  document.getElementById('pm-id').value=id||'';
+  document.getElementById('pm-modal-title').textContent=id?'Edit Payment Method':'Add Payment Method';
+  if(id){const p=DB.paymentMethods.find(x=>x.id===id);if(p){document.getElementById('pm-name').value=p.name;document.getElementById('pm-type').value=p.type;document.getElementById('pm-desc').value=p.desc||'';document.getElementById('pm-active').value=p.active||'yes';}}
+  else{document.getElementById('pm-name').value='';document.getElementById('pm-desc').value='';document.getElementById('pm-active').value='yes';}
+  document.getElementById('modal-payment').classList.add('open');
+}
+function editPaymentMethod(id){openPaymentModal(id);}
+function savePaymentMethod(){
+  const name=document.getElementById('pm-name').value.trim();if(!name){alert('Enter a method name');return;}
+  const id=document.getElementById('pm-id').value;
+  const data={name,type:document.getElementById('pm-type').value,desc:document.getElementById('pm-desc').value,active:document.getElementById('pm-active').value};
+  if(id)fbSet('paymentMethods/'+id,data);else fbPush('paymentMethods',data);
+  closeModal('modal-payment');
+}
+function delPaymentMethod(id){if(!confirm('Delete this payment method?'))return;fbRemove('paymentMethods/'+id);}
+
+function addFIType(){
+  const v=document.getElementById('fi-type-input').value.trim();if(!v)return;
+  const types=[...new Set([...(DB.fiTypes.length?DB.fiTypes:['Rental','Interest','Dividend','Agricultural','Other']),v])];
+  const obj={};types.forEach((t,i)=>obj[i]=t);
+  fbSet('fiTypes',obj);
+  document.getElementById('fi-type-input').value='';
+}
+function delFIType(t){
+  const types=(DB.fiTypes.length?DB.fiTypes:['Rental','Interest','Dividend','Agricultural','Other']).filter(x=>x!==t);
+  const obj={};types.forEach((x,i)=>obj[i]=x);
+  fbSet('fiTypes',obj);
+}
+
+// ── FAMILY INCOME ──
+function renderFamilyIncome(){
+  const m=getMonth(DB.currentMonth);
+  const fiActuals=m.fiActuals||[];
+  const activeSources=DB.fiSources.filter(s=>s.active==='yes');
+  const expectedTotal=activeSources.reduce((s,x)=>s+(+x.expected||0),0);
+  const receivedTotal=fiActuals.reduce((s,a)=>s+(+a.amount||0),0);
+  const pending=expectedTotal-receivedTotal;
+
+  document.getElementById('fi-metrics').innerHTML=`
+    <div class="metric-card accent"><div class="m-label">Expected This Month</div><div class="m-val" style="color:var(--ink)">${fmtMoney(expectedTotal)}</div><div class="m-sub">${activeSources.length} active source${activeSources.length!==1?'s':''}</div></div>
+    <div class="metric-card green"><div class="m-label">Received This Month</div><div class="m-val" style="color:var(--teal)">${fmtMoney(receivedTotal)}</div><div class="m-sub">${fiActuals.length} receipts</div></div>
+    <div class="metric-card ${pending>0?'red':''}"><div class="m-label">Pending / Outstanding</div><div class="m-val" style="color:${pending>0?'var(--red)':'var(--teal)'}">${fmtMoney(Math.abs(pending))}</div><div class="m-sub">${pending>0?'Not yet received':'Fully collected'}</div></div>
+    <div class="metric-card"><div class="m-label">Total Sources</div><div class="m-val">${DB.fiSources.length}</div><div class="m-sub">${activeSources.length} active</div></div>
+  `;
+
+  // Sources table
+  const stb=document.getElementById('fi-sources-tbody');
+  if(!DB.fiSources.length){stb.innerHTML=`<tr><td colspan="6"><div class="empty"><div class="e-icon">🏠</div><div class="e-text">No income sources. Click "+ Add Income Source".</div></div></td></tr>`;}
+  else{stb.innerHTML=DB.fiSources.map(s=>{
+    const recv=fiActuals.filter(a=>a.source===s.name).reduce((x,a)=>x+(+a.amount||0),0);
+    return `<tr>
+      <td>${s.name}</td>
+      <td><span class="badge badge-gold">${s.type}</span></td>
+      <td style="font-size:12px;color:var(--ink-muted)">${s.detail||''}</td>
+      <td>${fmtMoney(s.expected)}</td>
+      <td><span class="badge ${s.active==='yes'?'badge-green':'badge-gray'}">${s.active==='yes'?'Active':'Inactive'}</span></td>
+      <td><button class="icon-btn" onclick="editFISource('${s.id}')">✏️</button><button class="icon-btn" onclick="delFISource('${s.id}')">🗑️</button></td>
+    </tr>`;}).join('');}
+
+  // Actuals table
+  const atb=document.getElementById('fi-actual-tbody');
+  const sorted=[...fiActuals].sort((a,b)=>b.date.localeCompare(a.date));
+  if(!sorted.length){atb.innerHTML=`<tr><td colspan="5"><div class="empty"><div class="e-icon">📬</div><div class="e-text">No receipts recorded for this month.</div></div></td></tr>`;document.getElementById('fi-actual-sum').innerHTML='';}
+  else{
+    atb.innerHTML=sorted.map(a=>`<tr>
+      <td>${a.date}</td>
+      <td><span class="badge badge-gold">${a.source}</span></td>
+      <td style="color:var(--teal);font-weight:600">${fmtMoney(a.amount)}</td>
+      <td style="font-size:12px;color:var(--ink-muted)">${a.note||''}</td>
+      <td><button class="icon-btn" onclick="delFIActual('${a.id}')">🗑️</button></td>
+    </tr>`).join('');
+    document.getElementById('fi-actual-sum').innerHTML=`<div class="sum-item"><div class="s-label">Total Received</div><div class="s-val" style="color:var(--teal)">${fmtMoney(receivedTotal)}</div></div>`;
+  }
+}
+
+function openFamilyIncomeModal(id){
+  document.getElementById('fi-src-id').value=id||'';
+  document.getElementById('fi-src-title').textContent=id?'Edit Income Source':'Add Income Source';
+  const types=DB.fiTypes.length?DB.fiTypes:['Rental','Interest','Dividend','Agricultural','Other'];
+  document.getElementById('fi-src-type').innerHTML=types.map(t=>`<option>${t}</option>`).join('');
+  if(id){const s=DB.fiSources.find(x=>x.id===id);if(s){document.getElementById('fi-src-name').value=s.name;document.getElementById('fi-src-type').value=s.type;document.getElementById('fi-src-expected').value=s.expected;document.getElementById('fi-src-detail').value=s.detail||'';document.getElementById('fi-src-active').value=s.active||'yes';}}
+  else{document.getElementById('fi-src-name').value='';document.getElementById('fi-src-expected').value='';document.getElementById('fi-src-detail').value='';document.getElementById('fi-src-active').value='yes';}
+  document.getElementById('modal-fisource').classList.add('open');
+}
+function editFISource(id){openFamilyIncomeModal(id);}
+function saveFISource(){
+  const name=document.getElementById('fi-src-name').value.trim();const expected=parseFloat(document.getElementById('fi-src-expected').value)||0;
+  if(!name){alert('Enter a source name');return;}
+  const id=document.getElementById('fi-src-id').value;
+  const data={name,type:document.getElementById('fi-src-type').value,expected,detail:document.getElementById('fi-src-detail').value,active:document.getElementById('fi-src-active').value};
+  if(id)fbSet('fiSources/'+id,data);else fbPush('fiSources',data);
+  closeModal('modal-fisource');
+}
+function delFISource(id){if(!confirm('Delete this income source?'))return;fbRemove('fiSources/'+id);}
+
+function openFIActualModal(){
+  const sources=DB.fiSources.filter(s=>s.active==='yes');
+  if(!sources.length){alert('Please add at least one active income source first.');return;}
+  document.getElementById('fia-source').innerHTML=sources.map(s=>`<option>${s.name}</option>`).join('');
+  paymentSelect('fia-payment');
+  document.getElementById('fia-date').value=todayStr();
+  document.getElementById('fia-amount').value='';
+  document.getElementById('fia-note').value='';
+  // pre-fill expected amount
+  const first=sources[0];
+  document.getElementById('fia-amount').value=first.expected||'';
+  document.getElementById('fia-source').onchange=function(){
+    const s=sources.find(x=>x.name===this.value);
+    if(s)document.getElementById('fia-amount').value=s.expected||'';
+  };
+  document.getElementById('modal-fiactual').classList.add('open');
+}
+function saveFIActual(){
+  const amount=parseFloat(document.getElementById('fia-amount').value)||0;const date=document.getElementById('fia-date').value;
+  if(!amount||!date){alert('Please fill in date and amount');return;}
+  fbPush('months/'+DB.currentMonth+'/fiActuals',{date,source:document.getElementById('fia-source').value,amount,payment:document.getElementById('fia-payment').value,note:document.getElementById('fia-note').value});
+  closeModal('modal-fiactual');
+}
+function delFIActual(id){if(!confirm('Delete this receipt?'))return;fbRemove('months/'+DB.currentMonth+'/fiActuals/'+id);}
+
+// ── REPORTS ──
+function renderReports(){
+  const months=Object.keys(DB.months).sort();const allA=months.flatMap(k=>(DB.months[k].actuals||[]).map(a=>({...a,month:k})));
+  const tSpent=allA.reduce((s,a)=>s+(+a.amount||0),0);
+  const tMemberInc=months.reduce((s,k)=>s+(DB.months[k].income||[]).reduce((x,i)=>x+(+i.amount||0),0),0);
+  const tFamilyInc=months.reduce((s,k)=>s+(DB.months[k].fiActuals||[]).reduce((x,i)=>x+(+i.amount||0),0),0);
+  const tInc=tMemberInc+tFamilyInc;
+  const sav=DB.savings.reduce((s,x)=>s+(+x.current||0),0);
+  document.getElementById('report-metrics').innerHTML=`
+    <div class="metric-card"><div class="m-label">Member Income (all time)</div><div class="m-val" style="color:var(--teal)">${fmtMoney(tMemberInc)}</div></div>
+    <div class="metric-card"><div class="m-label">Family Income (all time)</div><div class="m-val" style="color:var(--gold)">${fmtMoney(tFamilyInc)}</div></div>
+    <div class="metric-card"><div class="m-label">Total Expenses (all time)</div><div class="m-val" style="color:var(--red)">${fmtMoney(tSpent)}</div></div>
+    <div class="metric-card gold"><div class="m-label">Net Worth (savings)</div><div class="m-val" style="color:var(--gold)">${fmtMoney(sav)}</div></div>
+    <div class="metric-card"><div class="m-label">Combined Income (all time)</div><div class="m-val" style="color:var(--teal)">${fmtMoney(tInc)}</div></div>
+    <div class="metric-card"><div class="m-label">Months Tracked</div><div class="m-val">${months.length}</div></div>`;
+  const te=document.getElementById('report-trend');
+  if(!months.length)te.innerHTML='<div class="empty"><div class="e-icon">📊</div><div class="e-text">No data yet</div></div>';
+  else{const ms=Math.max(...months.map(k=>(DB.months[k].actuals||[]).reduce((s,a)=>s+(+a.amount||0),0)),1);te.innerHTML=months.slice(-6).map(k=>{const sp=(DB.months[k].actuals||[]).reduce((s,a)=>s+(+a.amount||0),0);const w=Math.round(sp/ms*100);return `<div class="chart-bar-item"><span class="chart-bar-label">${monthLabel(k)}</span><div class="chart-bar-track" style="height:12px;"><div style="position:absolute;top:0;left:0;height:100%;width:${w}%;background:var(--gold);border-radius:5px;"></div></div><span class="chart-bar-val">${fmtMoney(sp)}</span></div>`;}).join('');}
+  const ct={};allA.forEach(a=>{ct[a.category]=(ct[a.category]||0)+(+a.amount||0);});const sc=Object.entries(ct).sort((a,b)=>b[1]-a[1]);const be=document.getElementById('report-breakdown');
+  if(!sc.length)be.innerHTML='<div class="empty"><div class="e-icon">📋</div><div class="e-text">No data yet</div></div>';
+  else{const mv=sc[0][1];be.innerHTML=sc.map(([c,v])=>`<div class="progress-wrap"><div class="progress-info"><span class="progress-name">${c}</span><span class="progress-nums">${fmtMoney(v)}</span></div><div class="progress-track"><div class="progress-fill" style="width:${Math.round(v/mv*100)}%;background:${catColor(c)};"></div></div></div>`).join('');}
+  const tb=document.getElementById('report-tbody');
+  if(!months.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--ink-muted);padding:20px">No data</td></tr>';return;}
+  tb.innerHTML=months.slice().reverse().map(k=>{
+    const minc=(DB.months[k].income||[]).reduce((s,i)=>s+(+i.amount||0),0);
+    const finc=(DB.months[k].fiActuals||[]).reduce((s,i)=>s+(+i.amount||0),0);
+    const inc=minc+finc;
+    const bud=(DB.months[k].budget||[]).reduce((s,b)=>s+(+b.amount||0),0);
+    const act=(DB.months[k].actuals||[]).reduce((s,a)=>s+(+a.amount||0),0);
+    const sv=inc-act;
+    return `<tr>
+      <td>${monthLabel(k)}</td>
+      <td style="color:var(--teal);font-weight:600">${fmtMoney(minc)}</td>
+      <td style="color:var(--gold);font-weight:600">${fmtMoney(finc)}</td>
+      <td style="color:var(--teal);font-weight:600">${fmtMoney(inc)}</td>
+      <td>${fmtMoney(bud)}</td>
+      <td style="color:${act>bud?'var(--red)':'inherit'};font-weight:${act>bud?600:400}">${fmtMoney(act)}</td>
+      <td style="color:${sv>=0?'var(--teal)':'var(--red)'};font-weight:600">${fmtMoney(sv)}</td>
+      <td><span class="badge ${act<=bud?'badge-green':'badge-red'}">${act<=bud?'Within':'Over'} budget</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── MODAL CLOSE ON BACKDROP ──
+document.querySelectorAll('.modal-backdrop').forEach(b=>{b.addEventListener('click',e=>{if(e.target===b)b.classList.remove('open');});});
+// ════════════════════════════════════════
+// ── KITCHEN INVENTORY ──
+// ════════════════════════════════════════
+function invStatus(item){
+  const q=+item.qty||0, m=+item.min||0;
+  if(q===0)return{label:'Out of Stock',cls:'badge-red'};
+  if(m>0&&q<=m)return{label:'Low Stock',cls:'badge-gold'};
+  return{label:'In Stock',cls:'badge-green'};
+}
+function renderInventory(){
+  const catF=document.getElementById('inv-cat-filter')?.value||'';
+  const items=catF?DB.inventory.filter(i=>i.cat===catF):DB.inventory;
+  const total=DB.inventory.length;
+  const outOf=DB.inventory.filter(i=>(+i.qty||0)===0).length;
+  const low=DB.inventory.filter(i=>{const q=+i.qty||0,m=+i.min||0;return q>0&&m>0&&q<=m;}).length;
+  const ok=total-outOf-low;
+  document.getElementById('inv-metrics').innerHTML=`
+    <div class="metric-card"><div class="m-label">Total Items</div><div class="m-val">${total}</div></div>
+    <div class="metric-card green"><div class="m-label">In Stock</div><div class="m-val" style="color:var(--teal)">${ok}</div></div>
+    <div class="metric-card"><div class="m-label">Low Stock</div><div class="m-val" style="color:var(--gold)">${low}</div></div>
+    <div class="metric-card red"><div class="m-label">Out of Stock</div><div class="m-val" style="color:var(--red)">${outOf}</div></div>`;
+  const tb=document.getElementById('inv-tbody');
+  if(!items.length){tb.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="e-icon">🏪</div><div class="e-text">No items yet. Click "+ Add Item".</div></div></td></tr>`;return;}
+  const sorted=[...items].sort((a,b)=>a.name.localeCompare(b.name));
+  tb.innerHTML=sorted.map(item=>{
+    const st=invStatus(item);
+    return `<tr>
+      <td>${item.name}</td>
+      <td><span class="badge badge-gray">${item.cat||'-'}</span></td>
+      <td style="font-weight:600;color:${+item.qty===0?'var(--red)':+item.qty<=(+item.min||0)&&+item.min>0?'var(--gold)':'var(--teal)'}">${item.qty||0}</td>
+      <td>${item.unit||''}</td>
+      <td style="color:var(--ink-muted)">${item.min||0} ${item.unit||''}</td>
+      <td><span class="badge ${st.cls}">${st.label}</span></td>
+      <td style="font-size:11px;color:var(--ink-muted)">${item.updated||'-'}</td>
+      <td style="display:flex;gap:4px;align-items:center;">
+        <button class="icon-btn" onclick="quickUpdateStock('${item.id}')" title="Update qty">📦</button>
+        <button class="icon-btn" onclick="editInventoryItem('${item.id}')">✏️</button>
+        <button class="icon-btn" onclick="delInventoryItem('${item.id}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+function openInventoryModal(id){
+  document.getElementById('inv-id').value=id||'';
+  document.getElementById('inv-modal-title').textContent=id?'Edit Item':'Add Inventory Item';
+  if(id){const it=DB.inventory.find(x=>x.id===id);if(it){document.getElementById('inv-name').value=it.name;document.getElementById('inv-cat').value=it.cat||'Other';document.getElementById('inv-qty').value=it.qty||0;document.getElementById('inv-unit').value=it.unit||'kg';document.getElementById('inv-min').value=it.min||0;document.getElementById('inv-note').value=it.note||'';}}
+  else{document.getElementById('inv-name').value='';document.getElementById('inv-qty').value='';document.getElementById('inv-min').value='';document.getElementById('inv-note').value='';}
+  document.getElementById('modal-inventory').classList.add('open');
+}
+function editInventoryItem(id){openInventoryModal(id);}
+function saveInventoryItem(){
+  const name=document.getElementById('inv-name').value.trim();if(!name){alert('Enter item name');return;}
+  const id=document.getElementById('inv-id').value;
+  const data={name,cat:document.getElementById('inv-cat').value,qty:parseFloat(document.getElementById('inv-qty').value)||0,unit:document.getElementById('inv-unit').value,min:parseFloat(document.getElementById('inv-min').value)||0,note:document.getElementById('inv-note').value,updated:todayStr()};
+  if(id)fbSet('inventory/'+id,data);else fbPush('inventory',data);
+  closeModal('modal-inventory');
+}
+function delInventoryItem(id){if(!confirm('Delete this item?'))return;fbRemove('inventory/'+id);}
+function quickUpdateStock(id){
+  const item=DB.inventory.find(x=>x.id===id);if(!item)return;
+  const val=prompt(`Update stock for "${item.name}" (current: ${item.qty} ${item.unit}):`);
+  if(val===null)return;
+  const qty=parseFloat(val);
+  if(isNaN(qty)){alert('Invalid quantity');return;}
+  fbSet('inventory/'+id,{...item,qty,updated:todayStr()});
+}
+// Deduct stock by ingredient name+unit
+function deductStock(ingredientName, qty){
+  const match=DB.inventory.find(i=>i.name.toLowerCase()===ingredientName.toLowerCase());
+  if(!match)return;
+  const newQty=Math.max(0,(+match.qty||0)-(+qty||0));
+  fbSet('inventory/'+match.id,{...match,qty:newQty,updated:todayStr()});
+}
+
+// ════════════════════════════════════════
+// ── RECIPE MASTER ──
+// ════════════════════════════════════════
+let recipeIngredients=[];
+function renderRecipes(){
+  const grid=document.getElementById('recipes-grid');
+  if(!DB.recipes.length){grid.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="e-icon">🍳</div><div class="e-text">No recipes yet. Click "+ Add Recipe".</div></div>`;return;}
+  const mealColors={Breakfast:'#C8922A',Lunch:'#1D9E75',Dinner:'#2B5A9E',Snack:'#8E44AD',Any:'#888'};
+  grid.innerHTML=DB.recipes.map(r=>`
+    <div class="card" style="position:relative;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div>
+          <div style="font-family:'Playfair Display',serif;font-size:15px;font-weight:600;">${r.name}</div>
+          <div style="font-size:11px;color:var(--ink-muted);margin-top:2px;">Serves ${r.serves||4} · ${r.time||'?'} mins</div>
+        </div>
+        <span class="badge" style="background:${mealColors[r.meal]||'#888'}22;color:${mealColors[r.meal]||'#888'}">${r.meal||'Any'}</span>
+      </div>
+      <div style="margin-bottom:10px;">
+        ${(r.ingredients||[]).slice(0,6).map(i=>`<span style="display:inline-block;background:var(--cream);border:1px solid var(--border);border-radius:20px;padding:2px 8px;font-size:11px;margin:2px 2px 2px 0;color:var(--ink-soft)">${i.name} ${i.qty}${i.unit}</span>`).join('')}
+        ${(r.ingredients||[]).length>6?`<span style="font-size:11px;color:var(--ink-muted)">+${(r.ingredients||[]).length-6} more</span>`:''}
+      </div>
+      ${r.instructions?`<div style="font-size:12px;color:var(--ink-muted);border-top:1px solid var(--border);padding-top:8px;line-height:1.5;">${r.instructions.slice(0,120)}${r.instructions.length>120?'…':''}</div>`:''}
+      <div style="display:flex;gap:6px;margin-top:12px;">
+        <button class="btn btn-outline btn-sm" onclick="editRecipe('${r.id}')">✏️ Edit</button>
+        <button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:none" onclick="delRecipe('${r.id}')">🗑️</button>
+      </div>
+    </div>`).join('');
+}
+function openRecipeModal(id){
+  recipeIngredients=[];
+  document.getElementById('recipe-id').value=id||'';
+  document.getElementById('recipe-modal-title').textContent=id?'Edit Recipe':'Add Recipe';
+  if(id){
+    const r=DB.recipes.find(x=>x.id===id);
+    if(r){
+      document.getElementById('recipe-name').value=r.name;
+      document.getElementById('recipe-meal').value=r.meal||'Any';
+      document.getElementById('recipe-serves').value=r.serves||4;
+      document.getElementById('recipe-time').value=r.time||'';
+      document.getElementById('recipe-instructions').value=r.instructions||'';
+      recipeIngredients=[...(r.ingredients||[])];
+    }
+  } else {
+    document.getElementById('recipe-name').value='';
+    document.getElementById('recipe-serves').value=4;
+    document.getElementById('recipe-time').value='';
+    document.getElementById('recipe-instructions').value='';
+  }
+  document.getElementById('ri-name').value='';
+  document.getElementById('ri-qty').value='';
+  renderIngredientsList();
+  document.getElementById('modal-recipe').classList.add('open');
+}
+function editRecipe(id){openRecipeModal(id);}
+function renderIngredientsList(){
+  document.getElementById('recipe-ingredients-list').innerHTML=recipeIngredients.length
+    ?recipeIngredients.map((ing,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:var(--cream);border-radius:var(--radius-sm);margin-bottom:4px;font-size:13px;">
+        <span>${ing.name} — ${ing.qty} ${ing.unit}</span>
+        <button onclick="removeIngredient(${i})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:14px;">×</button>
+      </div>`).join('')
+    :'<div style="font-size:12px;color:var(--ink-muted);margin-bottom:6px;">No ingredients added yet.</div>';
+}
+function addRecipeIngredient(){
+  const name=document.getElementById('ri-name').value.trim();
+  const qty=parseFloat(document.getElementById('ri-qty').value)||0;
+  const unit=document.getElementById('ri-unit').value;
+  if(!name){alert('Enter ingredient name');return;}
+  recipeIngredients.push({name,qty,unit});
+  document.getElementById('ri-name').value='';
+  document.getElementById('ri-qty').value='';
+  renderIngredientsList();
+}
+function removeIngredient(i){recipeIngredients.splice(i,1);renderIngredientsList();}
+function saveRecipe(){
+  const name=document.getElementById('recipe-name').value.trim();if(!name){alert('Enter dish name');return;}
+  if(!recipeIngredients.length){alert('Add at least one ingredient');return;}
+  const id=document.getElementById('recipe-id').value;
+  const data={name,meal:document.getElementById('recipe-meal').value,serves:parseInt(document.getElementById('recipe-serves').value)||4,time:parseInt(document.getElementById('recipe-time').value)||0,instructions:document.getElementById('recipe-instructions').value,ingredients:recipeIngredients};
+  if(id)fbSet('recipes/'+id,data);else fbPush('recipes',data);
+  closeModal('modal-recipe');
+}
+function delRecipe(id){if(!confirm('Delete this recipe?'))return;fbRemove('recipes/'+id);}
+
+// ════════════════════════════════════════
+// ── WEEKLY MENU ──
+// ════════════════════════════════════════
+const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const MEALS=['Breakfast','Lunch','Dinner'];
+
+function getWeekKey(offset){
+  const now=new Date();
+  const day=now.getDay();
+  const monday=new Date(now);
+  monday.setDate(now.getDate()-((day+6)%7)+(offset*7));
+  return monday.toISOString().slice(0,10);
+}
+function buildWeekOptions(){
+  const sel=document.getElementById('menu-week-sel');if(!sel)return;
+  const cur=sel.value;sel.innerHTML='';
+
+  // Build weeks from 2 months back to 3 months ahead (covers ~20 weeks)
+  const weeks=[];
+  for(let i=-8;i<=12;i++){
+    const k=getWeekKey(i);
+    const d=new Date(k);
+    const end=new Date(d);end.setDate(d.getDate()+6);
+    const hasData=!!DB.weeklyMenus[k];
+    weeks.push({key:k,start:d,end,hasData});
+  }
+
+  // Group by month of the Monday
+  const byMonth={};
+  weeks.forEach(w=>{
+    const mk=w.start.getFullYear()+'-'+String(w.start.getMonth()+1).padStart(2,'0');
+    const mlabel=MN[w.start.getMonth()]+' '+w.start.getFullYear();
+    if(!byMonth[mk])byMonth[mk]={label:mlabel,weeks:[]};
+    byMonth[mk].weeks.push(w);
+  });
+
+  let firstSelected=false;
+  Object.entries(byMonth).forEach(([mk,grp])=>{
+    const g=document.createElement('optgroup');
+    g.label=grp.label;
+    grp.weeks.forEach((w,wi)=>{
+      const o=document.createElement('option');
+      o.value=w.key;
+      const startStr=MN[w.start.getMonth()]+' '+w.start.getDate();
+      const endStr=MN[w.end.getMonth()]+' '+w.end.getDate();
+      o.textContent=`Week ${wi+1}: ${startStr} – ${endStr}${w.hasData?' ●':''}`;
+      if(w.key===cur||((!cur||!firstSelected)&&w.key===getWeekKey(0))){o.selected=true;firstSelected=true;}
+      g.appendChild(o);
+    });
+    sel.appendChild(g);
+  });
+}
+function renderWeeklyMenu(){
+  buildWeekOptions();
+  const weekKey=document.getElementById('menu-week-sel')?.value||getWeekKey(0);
+  const menu=DB.weeklyMenus[weekKey]||{};
+  const grid=document.getElementById('weekly-menu-grid');
+  const mealColors={Breakfast:'#C8922A',Lunch:'#1D9E75',Dinner:'#2B5A9E'};
+
+  // Week summary bar
+  const wStart=new Date(weekKey);
+  const wEnd=new Date(weekKey);wEnd.setDate(wStart.getDate()+6);
+  const plannedCount=DAYS.reduce((s,day)=>s+MEALS.filter(m=>menu[day]?.[m]).length,0);
+  const totalSlots=DAYS.length*MEALS.length;
+  const weekLabel=`${MN[wStart.getMonth()]} ${wStart.getDate()} – ${MN[wEnd.getMonth()]} ${wEnd.getDate()}, ${wEnd.getFullYear()}`;
+
+  grid.innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding:12px 16px;background:var(--warm-white);border:1px solid var(--border);border-radius:var(--radius);flex-wrap:wrap;gap:8px;">
+      <div>
+        <div style="font-family:'Playfair Display',serif;font-size:15px;font-weight:600;">${weekLabel}</div>
+        <div style="font-size:12px;color:var(--ink-muted);margin-top:2px;">${plannedCount} of ${totalSlots} meals planned</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="height:8px;width:120px;background:var(--cream);border-radius:4px;overflow:hidden;border:1px solid var(--border);">
+          <div style="height:100%;width:${Math.round(plannedCount/totalSlots*100)}%;background:var(--teal);border-radius:4px;"></div>
+        </div>
+        <span style="font-size:12px;color:var(--teal);font-weight:600;">${Math.round(plannedCount/totalSlots*100)}%</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;">
+    ${DAYS.map((day,di)=>{
+      const weekDate=new Date(weekKey);weekDate.setDate(weekDate.getDate()+di);
+      const dateStr=MN[weekDate.getMonth()]+' '+weekDate.getDate();
+      return `<div class="card" style="padding:14px;">
+        <div style="font-family:'Playfair Display',serif;font-size:14px;font-weight:600;margin-bottom:2px;">${day}</div>
+        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:10px;">${dateStr}</div>
+        ${MEALS.map(meal=>{
+          const dishId=menu[day]?.[meal]||'';
+          const recipe=DB.recipes.find(r=>r.id===dishId);
+          return `<div style="margin-bottom:8px;">
+            <div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.6px;color:${mealColors[meal]};margin-bottom:3px;">${meal}</div>
+            <div onclick="openMenuDishModal('${day}','${meal}','${weekKey}')" style="cursor:pointer;padding:6px 8px;border-radius:var(--radius-sm);border:1px dashed ${recipe?mealColors[meal]:'var(--border-strong)'};background:${recipe?mealColors[meal]+'11':'var(--cream)'};font-size:12px;color:${recipe?'var(--ink)':'var(--ink-muted)'};min-height:30px;display:flex;align-items:center;justify-content:space-between;">
+              <span>${recipe?recipe.name:'+ Add dish'}</span>
+              ${recipe?`<span style="font-size:10px;color:var(--ink-muted)">✏️</span>`:''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+function openMenuDishModal(day,meal,weekKey){
+  document.getElementById('md-day').value=day;
+  document.getElementById('md-meal').value=meal;
+  document.getElementById('menu-dish-title').textContent=`${day} — ${meal}`;
+  const sel=document.getElementById('md-recipe');
+  const filtered=DB.recipes.filter(r=>r.meal===meal||r.meal==='Any');
+  sel.innerHTML=`<option value="">— None / Clear —</option>`+DB.recipes.map(r=>`<option value="${r.id}">${r.name} (${r.meal})</option>`).join('');
+  const menu=DB.weeklyMenus[weekKey]||{};
+  const cur=menu[day]?.[meal]||'';
+  sel.value=cur;
+  updateMenuPreview();
+  sel.onchange=updateMenuPreview;
+  document.getElementById('modal-menudish').classList.add('open');
+}
+function updateMenuPreview(){
+  const id=document.getElementById('md-recipe').value;
+  const r=DB.recipes.find(x=>x.id===id);
+  const el=document.getElementById('md-preview');
+  if(!r){el.innerHTML='';return;}
+  el.innerHTML=`<div style="background:var(--cream);border-radius:var(--radius-sm);padding:10px 12px;">
+    <div style="font-weight:500;margin-bottom:4px;">${r.name} · Serves ${r.serves}</div>
+    <div>${(r.ingredients||[]).map(i=>`${i.name} ${i.qty}${i.unit}`).join(', ')}</div>
+  </div>`;
+}
+function saveMenuDish(){
+  const day=document.getElementById('md-day').value;
+  const meal=document.getElementById('md-meal').value;
+  const recipeId=document.getElementById('md-recipe').value;
+  const weekKey=document.getElementById('menu-week-sel').value||getWeekKey(0);
+  fbSet('weeklyMenus/'+weekKey+'/'+day+'/'+meal, recipeId||null);
+  closeModal('modal-menudish');
+}
+function confirmMenu(){
+  const weekKey=document.getElementById('menu-week-sel')?.value||getWeekKey(0);
+  const menu=DB.weeklyMenus[weekKey]||{};
+  if(!confirm('This will deduct all recipe ingredients from kitchen stock for this week. Continue?'))return;
+  DAYS.forEach(day=>{
+    MEALS.forEach(meal=>{
+      const recipeId=menu[day]?.[meal];
+      if(!recipeId)return;
+      const recipe=DB.recipes.find(r=>r.id===recipeId);
+      if(!recipe)return;
+      (recipe.ingredients||[]).forEach(ing=>deductStock(ing.name,ing.qty));
+    });
+  });
+  setSyncStatus('connected','Stock deducted ✓');
+}
+
+// ════════════════════════════════════════
+// ── SHOPPING LIST ──
+// ════════════════════════════════════════
+function generateShoppingFromMenu(){
+  const weekKey=document.getElementById('menu-week-sel')?.value||getWeekKey(0);
+  const menu=DB.weeklyMenus[weekKey]||{};
+  // Aggregate all ingredients needed
+  const needed={};
+  DAYS.forEach(day=>{
+    MEALS.forEach(meal=>{
+      const recipeId=menu[day]?.[meal];
+      if(!recipeId)return;
+      const recipe=DB.recipes.find(r=>r.id===recipeId);
+      if(!recipe)return;
+      (recipe.ingredients||[]).forEach(ing=>{
+        const key=ing.name.toLowerCase()+'_'+ing.unit;
+        if(!needed[key])needed[key]={name:ing.name,unit:ing.unit,qty:0};
+        needed[key].qty+=+ing.qty||0;
+      });
+    });
+  });
+  if(!Object.keys(needed).length){alert('No dishes planned for this week yet.');return;}
+  // Build shopping list — compare with stock
+  const updates={};
+  Object.values(needed).forEach(item=>{
+    const stock=DB.inventory.find(i=>i.name.toLowerCase()===item.name.toLowerCase());
+    const inStock=stock?(+stock.qty||0):0;
+    const toBuy=Math.max(0,item.qty-inStock);
+    const ref=db.ref('shoppingList').push();
+    updates['shoppingList/'+ref.key]={name:item.name,unit:item.unit,needed:Math.round(item.qty*10)/10,inStock:Math.round(inStock*10)/10,toBuy:Math.round(toBuy*10)/10,checked:false,weekKey};
+  });
+  setSyncStatus('syncing','Generating…');
+  db.ref().update(updates).then(()=>{setSyncStatus('connected','Shopping list ready');showPage('shopping');});
+}
+function renderShopping(){
+  const toBuyItems=DB.shoppingList.filter(i=>!i.checked&&i.toBuy>0);
+  const inStockItems=DB.shoppingList.filter(i=>!i.checked&&i.toBuy===0);
+  const checkedItems=DB.shoppingList.filter(i=>i.checked);
+  document.getElementById('shop-metrics').innerHTML=`
+    <div class="metric-card"><div class="m-label">Total Items Needed</div><div class="m-val">${DB.shoppingList.filter(i=>!i.checked).length}</div></div>
+    <div class="metric-card red"><div class="m-label">To Buy</div><div class="m-val" style="color:var(--red)">${toBuyItems.length}</div></div>
+    <div class="metric-card green"><div class="m-label">Already in Stock</div><div class="m-val" style="color:var(--teal)">${inStockItems.length}</div></div>
+    <div class="metric-card"><div class="m-label">Purchased</div><div class="m-val">${checkedItems.length}</div></div>`;
+  const listEl=document.getElementById('shop-list');
+  if(!toBuyItems.length){listEl.innerHTML='<div class="empty"><div class="e-icon">🛒</div><div class="e-text">Nothing to buy — all items in stock!</div></div>';}
+  else{listEl.innerHTML=toBuyItems.map(item=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <input type="checkbox" onchange="toggleShopItem('${item.id}',this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--teal);">
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;">${item.name}</div>
+        <div style="font-size:11px;color:var(--ink-muted);">Need ${item.needed} ${item.unit} · Have ${item.inStock} ${item.unit}</div>
+      </div>
+      <div style="font-size:14px;font-weight:600;color:var(--red);">${item.toBuy} ${item.unit}</div>
+    </div>`).join('');}
+  const stockEl=document.getElementById('shop-instock');
+  if(!inStockItems.length){stockEl.innerHTML='<div style="font-size:13px;color:var(--ink-muted);padding:12px 0">None yet</div>';}
+  else{stockEl.innerHTML=inStockItems.map(item=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);opacity:0.7;">
+      <span style="font-size:16px;">✅</span>
+      <div style="flex:1;font-size:13px;">${item.name}</div>
+      <div style="font-size:12px;color:var(--teal);font-weight:500;">Have ${item.inStock} ${item.unit}</div>
+    </div>`).join('');}
+}
+function toggleShopItem(id,checked){
+  const item=DB.shoppingList.find(x=>x.id===id);
+  if(!item)return;
+  fbSet('shoppingList/'+id,{...item,checked});
+  // If marked purchased, update inventory stock
+  if(checked){
+    const inv=DB.inventory.find(i=>i.name.toLowerCase()===item.name.toLowerCase());
+    if(inv) fbSet('inventory/'+inv.id,{...inv,qty:Math.round(((+inv.qty||0)+(+item.toBuy||0))*10)/10,updated:todayStr()});
+  }
+}
+function clearChecked(){
+  if(!confirm('Remove all checked items from shopping list?'))return;
+  DB.shoppingList.filter(i=>i.checked).forEach(i=>fbRemove('shoppingList/'+i.id));
+}
+function markAllPurchased(){
+  if(!confirm('Mark all items as purchased and update stock?'))return;
+  DB.shoppingList.filter(i=>!i.checked&&i.toBuy>0).forEach(item=>{
+    fbSet('shoppingList/'+item.id,{...item,checked:true});
+    const inv=DB.inventory.find(i=>i.name.toLowerCase()===item.name.toLowerCase());
+    if(inv) fbSet('inventory/'+inv.id,{...inv,qty:Math.round(((+inv.qty||0)+(+item.toBuy||0))*10)/10,updated:todayStr()});
+  });
+}
+
+// ────────────────────────────────────────
+function init(){
+  DB.currentMonth=todayYM();
+  buildMonthOptions();
+  document.getElementById('topMonthLabel').textContent=monthLabel(DB.currentMonth);
+  document.getElementById('loading-msg').textContent='Connecting to Firebase…';
+  db.ref('currentMonth').once('value').then(snap=>{
+    if(snap.val()){DB.currentMonth=snap.val();buildMonthOptions();document.getElementById('topMonthLabel').textContent=monthLabel(DB.currentMonth);}
+    document.getElementById('loading-msg').textContent='Loading family data…';
+    startListeners();
+    setTimeout(()=>{const ov=document.getElementById('loading-overlay');ov.classList.add('hide');setTimeout(()=>ov.style.display='none',500);},1400);
+  }).catch(()=>{
+    document.getElementById('loading-msg').textContent='Connection failed. Check your internet.';
+    setSyncStatus('error','Connection failed');
+  });
+}
+init();
+</script>
+</body>
+</html>
