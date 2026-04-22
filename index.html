@@ -142,6 +142,44 @@
   <div class="loading-msg" id="loading-msg">Connecting to Firebase…</div>
 </div>
 
+<!-- LOGIN SCREEN -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:var(--cream);z-index:998;align-items:center;justify-content:center;flex-direction:column;">
+  <div style="width:100%;max-width:400px;padding:24px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <div style="font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:var(--ink);">HomeMaker</div>
+      <div style="font-size:12px;color:var(--ink-muted);letter-spacing:1px;text-transform:uppercase;margin-top:4px;">Family Finance</div>
+    </div>
+    <div style="background:var(--warm-white);border:1px solid var(--border);border-radius:var(--radius);padding:28px 28px 24px;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+      <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:600;margin-bottom:4px;">Welcome back</div>
+      <div style="font-size:13px;color:var(--ink-muted);margin-bottom:22px;">Sign in to access your family dashboard</div>
+      <div id="login-error" style="display:none;background:var(--red-light);border:1px solid #f5c6c2;border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;color:var(--red);margin-bottom:14px;"></div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:12px;font-weight:500;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.4px;">Email</label>
+        <input id="login-email" type="email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')document.getElementById('login-pass').focus()"
+          style="width:100%;padding:10px 12px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);outline:none;">
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="display:block;font-size:12px;font-weight:500;color:var(--ink-soft);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.4px;">Password</label>
+        <div style="position:relative;">
+          <input id="login-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"
+            style="width:100%;padding:10px 40px 10px 12px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);outline:none;">
+          <button onclick="togglePassword()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--ink-muted);font-size:15px;" id="pass-toggle">👁</button>
+        </div>
+      </div>
+      <button onclick="doLogin()" id="login-btn"
+        style="width:100%;padding:11px;background:var(--gold);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background 0.15s;">
+        Sign In
+      </button>
+      <div style="text-align:center;margin-top:14px;">
+        <button onclick="doForgotPassword()" style="background:none;border:none;color:var(--ink-muted);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:underline;">Forgot password?</button>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--ink-muted);">
+      Contact your family admin to get access
+    </div>
+  </div>
+</div>
+
 <div id="app">
 <div id="sidebar">
   <div class="sidebar-logo">
@@ -184,6 +222,8 @@
     </div>
     <div class="topbar-right">
       <span id="topMonthLabel" style="font-size:13px;color:var(--ink-muted);margin-right:4px;"></span>
+      <span id="top-user" style="font-size:12px;color:var(--ink-muted);background:var(--cream);border:1px solid var(--border);border-radius:20px;padding:3px 10px;"></span>
+      <button class="btn btn-outline btn-sm" onclick="doSignOut()">Sign Out</button>
       <button class="btn btn-outline btn-sm" onclick="window.print()">🖨 Print</button>
     </div>
   </div>
@@ -269,11 +309,32 @@
   </div>
 
   <div id="page-reports" class="page">
-    <div class="section-head"><div><div class="section-title">Monthly Reports</div><div class="section-sub">Overview across all months</div></div></div>
+    <div class="section-head">
+      <div><div class="section-title">Monthly Reports</div><div class="section-sub">Overview across all months</div></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <label style="font-size:12px;color:var(--ink-muted)">Filter Month:</label>
+        <select id="rpt-month-filter" onchange="renderReports()" style="padding:6px 10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:13px;background:var(--cream);color:var(--ink);outline:none;">
+          <option value="">All Months</option>
+        </select>
+      </div>
+    </div>
     <div class="metric-grid" id="report-metrics"></div>
     <div class="two-col">
       <div class="card"><div class="card-header"><div class="card-title">Monthly Spend Trend</div></div><div id="report-trend"></div></div>
-      <div class="card"><div class="card-header"><div class="card-title">Category Breakdown (All Time)</div></div><div id="report-breakdown"></div></div>
+      <div class="card"><div class="card-header"><div class="card-title">Category Breakdown</div></div><div id="report-breakdown"></div></div>
+    </div>
+    <div class="two-col mt">
+      <div class="card">
+        <div class="card-header"><div class="card-title">💳 Payment Type Breakdown</div></div>
+        <div id="report-payment"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">💳 Payment Type — Month wise</div></div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Month</th><th>Payment Method</th><th>Amount (₹)</th><th>Txns</th><th>% of Spend</th></tr></thead>
+          <tbody id="report-payment-tbody"></tbody>
+        </table></div>
+      </div>
     </div>
     <div class="card mt">
       <div class="card-header"><div class="card-title">Month-wise Summary</div></div>
@@ -653,6 +714,7 @@
 <!-- Firebase SDK (compat v9) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyDlcWIJ3BKefHXV0mX2Vxqqa9vlWCTYrJU",
@@ -665,6 +727,7 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+const auth = firebase.auth();
 
 let DB = { members:[], months:{}, savings:[], paymentMethods:[], fiSources:[], fiTypes:[], inventory:[], recipes:[], weeklyMenus:{}, shoppingList:[], currentMonth:'' };
 
@@ -1138,28 +1201,76 @@ function delFIActual(id){if(!confirm('Delete this receipt?'))return;fbRemove('mo
 
 // ── REPORTS ──
 function renderReports(){
-  const months=Object.keys(DB.months).sort();const allA=months.flatMap(k=>(DB.months[k].actuals||[]).map(a=>({...a,month:k})));
+  const allMonths=Object.keys(DB.months).sort();
+  const mf=document.getElementById('rpt-month-filter');
+  const curFilter=mf?mf.value:'';
+  if(mf){mf.innerHTML='<option value="">All Months</option>'+allMonths.slice().reverse().map(k=>`<option value="${k}"${k===curFilter?' selected':''}>${monthLabel(k)}</option>`).join('');}
+  const months=curFilter?[curFilter]:allMonths;
+  const allA=months.flatMap(k=>(DB.months[k].actuals||[]).map(a=>({...a,month:k})));
   const tSpent=allA.reduce((s,a)=>s+(+a.amount||0),0);
   const tMemberInc=months.reduce((s,k)=>s+(DB.months[k].income||[]).reduce((x,i)=>x+(+i.amount||0),0),0);
   const tFamilyInc=months.reduce((s,k)=>s+(DB.months[k].fiActuals||[]).reduce((x,i)=>x+(+i.amount||0),0),0);
   const tInc=tMemberInc+tFamilyInc;
   const sav=DB.savings.reduce((s,x)=>s+(+x.current||0),0);
   document.getElementById('report-metrics').innerHTML=`
-    <div class="metric-card"><div class="m-label">Member Income (all time)</div><div class="m-val" style="color:var(--teal)">${fmtMoney(tMemberInc)}</div></div>
-    <div class="metric-card"><div class="m-label">Family Income (all time)</div><div class="m-val" style="color:var(--gold)">${fmtMoney(tFamilyInc)}</div></div>
-    <div class="metric-card"><div class="m-label">Total Expenses (all time)</div><div class="m-val" style="color:var(--red)">${fmtMoney(tSpent)}</div></div>
+    <div class="metric-card"><div class="m-label">Member Income</div><div class="m-val" style="color:var(--teal)">${fmtMoney(tMemberInc)}</div><div class="m-sub">${curFilter?monthLabel(curFilter):'All time'}</div></div>
+    <div class="metric-card"><div class="m-label">Family Income</div><div class="m-val" style="color:var(--gold)">${fmtMoney(tFamilyInc)}</div><div class="m-sub">${curFilter?monthLabel(curFilter):'All time'}</div></div>
+    <div class="metric-card"><div class="m-label">Total Expenses</div><div class="m-val" style="color:var(--red)">${fmtMoney(tSpent)}</div><div class="m-sub">${allA.length} transactions</div></div>
     <div class="metric-card gold"><div class="m-label">Net Worth (savings)</div><div class="m-val" style="color:var(--gold)">${fmtMoney(sav)}</div></div>
-    <div class="metric-card"><div class="m-label">Combined Income (all time)</div><div class="m-val" style="color:var(--teal)">${fmtMoney(tInc)}</div></div>
-    <div class="metric-card"><div class="m-label">Months Tracked</div><div class="m-val">${months.length}</div></div>`;
+    <div class="metric-card"><div class="m-label">Combined Income</div><div class="m-val" style="color:var(--teal)">${fmtMoney(tInc)}</div></div>
+    <div class="metric-card"><div class="m-label">Months Tracked</div><div class="m-val">${allMonths.length}</div></div>`;
   const te=document.getElementById('report-trend');
   if(!months.length)te.innerHTML='<div class="empty"><div class="e-icon">📊</div><div class="e-text">No data yet</div></div>';
   else{const ms=Math.max(...months.map(k=>(DB.months[k].actuals||[]).reduce((s,a)=>s+(+a.amount||0),0)),1);te.innerHTML=months.slice(-6).map(k=>{const sp=(DB.months[k].actuals||[]).reduce((s,a)=>s+(+a.amount||0),0);const w=Math.round(sp/ms*100);return `<div class="chart-bar-item"><span class="chart-bar-label">${monthLabel(k)}</span><div class="chart-bar-track" style="height:12px;"><div style="position:absolute;top:0;left:0;height:100%;width:${w}%;background:var(--gold);border-radius:5px;"></div></div><span class="chart-bar-val">${fmtMoney(sp)}</span></div>`;}).join('');}
   const ct={};allA.forEach(a=>{ct[a.category]=(ct[a.category]||0)+(+a.amount||0);});const sc=Object.entries(ct).sort((a,b)=>b[1]-a[1]);const be=document.getElementById('report-breakdown');
   if(!sc.length)be.innerHTML='<div class="empty"><div class="e-icon">📋</div><div class="e-text">No data yet</div></div>';
   else{const mv=sc[0][1];be.innerHTML=sc.map(([c,v])=>`<div class="progress-wrap"><div class="progress-info"><span class="progress-name">${c}</span><span class="progress-nums">${fmtMoney(v)}</span></div><div class="progress-track"><div class="progress-fill" style="width:${Math.round(v/mv*100)}%;background:${catColor(c)};"></div></div></div>`).join('');}
+  // Payment type colors
+  const payColors={'Cash':'#27AE60','UPI':'#2980B9','Credit Card':'#8E44AD','Debit Card':'#2471A3','Net Banking':'#1A5276','NEFT/RTGS':'#148F77','Cheque':'#7D6608','Wallet':'#A04000','Other':'#95A5A6'};
+  const payColor=p=>payColors[p]||'#888';
+  // Payment breakdown chart
+  const pt={};allA.forEach(a=>{const p=a.payment||'Other';if(!pt[p])pt[p]={count:0,amount:0};pt[p].count++;pt[p].amount+=(+a.amount||0);});
+  const pSorted=Object.entries(pt).sort((a,b)=>b[1].amount-a[1].amount);
+  const pe=document.getElementById('report-payment');
+  if(!pSorted.length)pe.innerHTML='<div class="empty"><div class="e-icon">💳</div><div class="e-text">No payment data yet</div></div>';
+  else{
+    const pmx=pSorted[0][1].amount;
+    pe.innerHTML=pSorted.map(([p,v])=>`
+      <div class="progress-wrap">
+        <div class="progress-info">
+          <span class="progress-name" style="display:flex;align-items:center;gap:6px;">
+            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${payColor(p)};flex-shrink:0;"></span>${p}
+            <span class="badge badge-gray" style="font-size:10px;">${v.count} txn${v.count!==1?'s':''}</span>
+          </span>
+          <span class="progress-nums">${fmtMoney(v.amount)} (${tSpent>0?Math.round(v.amount/tSpent*100):0}%)</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" style="width:${Math.round(v.amount/pmx*100)}%;background:${payColor(p)};"></div></div>
+      </div>`).join('');
+  }
+  // Payment × month table
+  const ptb=document.getElementById('report-payment-tbody');
+  const payRows=[];
+  months.slice().reverse().forEach(k=>{
+    const mActuals=DB.months[k].actuals||[];
+    const mTotal=mActuals.reduce((s,a)=>s+(+a.amount||0),0);
+    const mPay={};
+    mActuals.forEach(a=>{const p=a.payment||'Other';if(!mPay[p])mPay[p]={count:0,amount:0};mPay[p].count++;mPay[p].amount+=(+a.amount||0);});
+    const mPayArr=Object.entries(mPay).sort((a,b)=>b[1].amount-a[1].amount);
+    mPayArr.forEach(([p,v],i)=>{
+      payRows.push(`<tr>
+        ${i===0?`<td rowspan="${mPayArr.length}" style="font-weight:600;vertical-align:top;padding-top:12px;border-right:1px solid var(--border);">${monthLabel(k)}</td>`:''}
+        <td><span style="display:inline-flex;align-items:center;gap:5px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${payColor(p)};"></span>${p}</span></td>
+        <td style="font-weight:500;">${fmtMoney(v.amount)}</td>
+        <td style="color:var(--ink-muted);">${v.count}</td>
+        <td><div style="display:flex;align-items:center;gap:6px;"><div style="width:60px;height:6px;background:var(--cream);border-radius:3px;overflow:hidden;border:1px solid var(--border);"><div style="height:100%;width:${mTotal>0?Math.round(v.amount/mTotal*100):0}%;background:${payColor(p)};border-radius:3px;"></div></div><span style="font-size:12px;color:var(--ink-muted);">${mTotal>0?Math.round(v.amount/mTotal*100):0}%</span></div></td>
+      </tr>`);
+    });
+  });
+  ptb.innerHTML=payRows.length?payRows.join(''):'<tr><td colspan="5" style="text-align:center;color:var(--ink-muted);padding:20px">No payment data</td></tr>';
+  // Month summary table
   const tb=document.getElementById('report-tbody');
-  if(!months.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--ink-muted);padding:20px">No data</td></tr>';return;}
-  tb.innerHTML=months.slice().reverse().map(k=>{
+  if(!allMonths.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--ink-muted);padding:20px">No data</td></tr>';return;}
+  tb.innerHTML=allMonths.slice().reverse().map(k=>{
     const minc=(DB.months[k].income||[]).reduce((s,i)=>s+(+i.amount||0),0);
     const finc=(DB.months[k].fiActuals||[]).reduce((s,i)=>s+(+i.amount||0),0);
     const inc=minc+finc;
@@ -1172,7 +1283,7 @@ function renderReports(){
       <td style="color:var(--gold);font-weight:600">${fmtMoney(finc)}</td>
       <td style="color:var(--teal);font-weight:600">${fmtMoney(inc)}</td>
       <td>${fmtMoney(bud)}</td>
-      <td style="color:${act>bud?'var(--red)':'inherit'};font-weight:${act>bud?600:400}">${fmtMoney(act)}</td>
+      <td style="color:${act>bud?'var(--red)':''}; font-weight:${act>bud?600:400}">${fmtMoney(act)}</td>
       <td style="color:${sv>=0?'var(--teal)':'var(--red)'};font-weight:600">${fmtMoney(sv)}</td>
       <td><span class="badge ${act<=bud?'badge-green':'badge-red'}">${act<=bud?'Within':'Over'} budget</span></td>
     </tr>`;
@@ -1574,22 +1685,68 @@ function markAllPurchased(){
 }
 
 // ────────────────────────────────────────
-function init(){
+// ── AUTH FUNCTIONS ──
+function showLoginScreen(){
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+  setTimeout(()=>{const ov=document.getElementById('loading-overlay');ov.classList.add('hide');setTimeout(()=>ov.style.display='none',500);},600);
+}
+function showApp(user){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  const name=(user.email||'').split('@')[0];
+  document.getElementById('top-user').textContent='👤 '+name;
   DB.currentMonth=todayYM();
   buildMonthOptions();
   document.getElementById('topMonthLabel').textContent=monthLabel(DB.currentMonth);
-  document.getElementById('loading-msg').textContent='Connecting to Firebase…';
   db.ref('currentMonth').once('value').then(snap=>{
     if(snap.val()){DB.currentMonth=snap.val();buildMonthOptions();document.getElementById('topMonthLabel').textContent=monthLabel(DB.currentMonth);}
-    document.getElementById('loading-msg').textContent='Loading family data…';
     startListeners();
-    setTimeout(()=>{const ov=document.getElementById('loading-overlay');ov.classList.add('hide');setTimeout(()=>ov.style.display='none',500);},1400);
+    setTimeout(()=>{const ov=document.getElementById('loading-overlay');ov.classList.add('hide');setTimeout(()=>ov.style.display='none',500);},1000);
   }).catch(()=>{
-    document.getElementById('loading-msg').textContent='Connection failed. Check your internet.';
+    document.getElementById('loading-msg').textContent='Connection failed.';
     setSyncStatus('error','Connection failed');
+  });
+}
+function doLogin(){
+  const email=document.getElementById('login-email').value.trim();
+  const pass=document.getElementById('login-pass').value;
+  const errEl=document.getElementById('login-error');
+  const btn=document.getElementById('login-btn');
+  errEl.style.display='none';
+  if(!email||!pass){errEl.textContent='Please enter email and password.';errEl.style.display='block';return;}
+  btn.textContent='Signing in...';btn.disabled=true;
+  auth.signInWithEmailAndPassword(email,pass)
+    .then(()=>{btn.textContent='Sign In';btn.disabled=false;})
+    .catch(e=>{
+      btn.textContent='Sign In';btn.disabled=false;
+      const msgs={'auth/user-not-found':'No account found with this email.','auth/wrong-password':'Incorrect password.','auth/invalid-email':'Enter a valid email address.','auth/too-many-requests':'Too many attempts. Try again later.','auth/invalid-credential':'Incorrect email or password.'};
+      errEl.textContent=msgs[e.code]||('Sign in failed: '+e.message);
+      errEl.style.display='block';
+    });
+}
+function doSignOut(){
+  if(!confirm('Sign out of HomeMaker?'))return;
+  auth.signOut();
+}
+function doForgotPassword(){
+  const email=document.getElementById('login-email').value.trim();
+  if(!email){alert('Enter your email address first.');return;}
+  auth.sendPasswordResetEmail(email)
+    .then(()=>alert('Reset email sent to '+email))
+    .catch(e=>alert('Error: '+e.message));
+}
+function togglePassword(){
+  const inp=document.getElementById('login-pass');
+  inp.type=(inp.type==='password')?'text':'password';
+  document.getElementById('pass-toggle').textContent=(inp.type==='password')?'👁':'🙈';
+}
+function init(){
+  auth.onAuthStateChanged(user=>{
+    if(user){showApp(user);}
+    else{showLoginScreen();}
   });
 }
 init();
 </script>
 </body>
-</html>
